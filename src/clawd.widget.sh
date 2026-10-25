@@ -99,6 +99,14 @@ _cap="$(clawd_cap_override)"
   echo "CLAWD_SESSION_TTL=$CLAWD_SESSION_TTL"
 } >"$_clawd_state/clawd.env"
 
+# The animation workers outlive a bar reload and keep the frame intervals they
+# read at start, so a new CLAWD_FRAME_MS / CLAWD_HERD_MS / CLAWD_BLINK_MS would
+# wait until no session animates. Stop them: the plugin respawns them, one each
+# (see start_herd), from the clawd.env just written.
+pkill -f "__clawd_anim__" 2>/dev/null
+pkill -f "__clawd_herd_anim__" 2>/dev/null
+rm -f "$_clawd_state/anim.pid" "$_clawd_state/herd.pid"
+
 _plugin="$CLAWD_DIR/clawd.plugin.sh"
 _pos="$CLAWD_POSITION"
 # Nothing fires claude_state while a session just sits there asleep, so with

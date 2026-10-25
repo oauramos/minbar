@@ -141,18 +141,38 @@ stop_anim()  { _kill_worker "$PIDFILE" "__clawd_anim__"; }
 stop_herd()  { _kill_worker "$HPIDFILE" "__clawd_herd_anim__"; }
 anim_alive() { _worker_alive "$PIDFILE" "__clawd_anim__"; }
 herd_alive() { _worker_alive "$HPIDFILE" "__clawd_herd_anim__"; }
-start_anim() {
+# Several runs of this script go at once (every clawd item on a bar load, a
+# burst of hook events), and each one used to find no worker and start its
+# own: two loops then drove the same slots out of step, at twice the cost.
+# mkdir is atomic, so one run holds the lock while it checks and spawns, and
+# the rest find the worker alive. A lock older than 10s belongs to a run that
+# died holding it.
+_locked() {  # $1 lock dir, then the command to run under it
+  _lk="$1"; shift
+  if ! mkdir "$_lk" 2>/dev/null; then
+    [ $(( $(date +%s) - $(stat -f %m "$_lk" 2>/dev/null || echo 0) )) -gt 10 ] || return 0
+    rmdir "$_lk" 2>/dev/null
+    mkdir "$_lk" 2>/dev/null || return 0
+  fi
+  "$@"
+  rmdir "$_lk" 2>/dev/null
+}
+# shellcheck disable=SC2329  # called through _locked
+_spawn_anim() {
   anim_alive && return 0
   stop_anim
   "$DIR/clawd.plugin.sh" __clawd_anim__ </dev/null >/dev/null 2>&1 &
   echo $! >"$PIDFILE"
 }
-start_herd() {
+# shellcheck disable=SC2329  # called through _locked
+_spawn_herd() {
   herd_alive && return 0
   stop_herd
   "$DIR/clawd.plugin.sh" __clawd_herd_anim__ </dev/null >/dev/null 2>&1 &
   echo $! >"$HPIDFILE"
 }
+start_anim() { anim_alive || _locked "$STATE_DIR/anim.lock" _spawn_anim; }
+start_herd() { herd_alive || _locked "$STATE_DIR/herd.lock" _spawn_herd; }
 
 set_border() {  # orange while $1 == waiting, else normal
   if [ "$1" = "waiting" ]; then _bc="$CLAWD_BORDER_WAIT"; else _bc="$CLAWD_BORDER"; fi
