@@ -11,6 +11,9 @@
 
 CC        ?= clang
 PREFIX    ?= /usr/local
+# Where the files are found at run time, baked into bin/minbar and the launchd
+# agents: Homebrew installs into a versioned Cellar but runs through opt/.
+RUNTIME_PREFIX ?= $(PREFIX)
 BUILD     := build
 PRIVATE   := -F/System/Library/PrivateFrameworks
 
@@ -67,8 +70,8 @@ fonts/simple-icons.tsv: $(SI_TARBALL)
 install: all
 	install -d $(PREFIX)/bin $(PREFIX)/libexec/minbar $(PREFIX)/share/minbar
 	install -m 0755 $(HELPERS) $(PREFIX)/libexec/minbar/
-	cp -R bar clawd fonts app cli $(PREFIX)/share/minbar/
-	sed 's|@MINBAR_ROOT@|$(PREFIX)/share/minbar|; s|@MINBAR_LIBEXEC@|$(PREFIX)/libexec/minbar|' \
+	cp -R bar clawd fonts app cli LICENSE NOTICE.md $(PREFIX)/share/minbar/
+	sed 's|@MINBAR_ROOT@|$(RUNTIME_PREFIX)/share/minbar|; s|@MINBAR_LIBEXEC@|$(RUNTIME_PREFIX)/libexec/minbar|' \
 	  bin/minbar > $(PREFIX)/bin/minbar
 	chmod 0755 $(PREFIX)/bin/minbar
 

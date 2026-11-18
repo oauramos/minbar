@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>@BUNDLE_ID@</string>
+  <key>CFBundleName</key>
+  <string>MinBar</string>
+  <key>CFBundleDisplayName</key>
+  <string>MinBar</string>
+  <key>CFBundleExecutable</key>
+  <string>sketchybar</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@MINBAR_VERSION@</string>
+  <key>CFBundleVersion</key>
+  <string>@VERSION@</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSHumanReadableCopyright</key>
+  <string>MinBar @MINBAR_VERSION@ runs SketchyBar @VERSION@ by Felix Kratz (https://github.com/FelixKratz/SketchyBar), unmodified, GPL-3.0: see Resources/LICENSE.md. MinBar: https://github.com/oauramos/minbar, GPL-3.0.</string>
+</dict>
+</plist>

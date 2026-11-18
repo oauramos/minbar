@@ -46,7 +46,7 @@ FONT_ICON_VOLUME="Hack Nerd Font:Regular:16.0"
 # lookup instead of a literal glyph. 12, not 14: these glyphs fill the whole
 # em box, so at 14 they read bigger than the Nerd Font icons next to them.
 FONT_BRAND="Simple Icons:Regular:12.0"
-si_glyph() { awk -F'\t' -v s="$1" '$1 == s { print $2; exit }' "$CONFIG_DIR/../fonts/simple-icons.tsv" 2>/dev/null; }
+si_glyph() { awk -F'\t' -v s="$1" '$1 == s { print $2; exit }' "${MINBAR_ROOT:-$CONFIG_DIR/..}/fonts/simple-icons.tsv" 2>/dev/null; }
 
 ##### Layout #####
 # Box spacing standard, THE token, measured on what is drawn: BOX_PAD is the

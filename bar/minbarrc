@@ -22,10 +22,11 @@ PLUGIN_DIR="$CONFIG_DIR/plugins"
 # Plugins cannot see this shell's variables — the daemon spawns them with its
 # own env — so they re-read both files through plugins/lib.sh. CONFIG_DIR is
 # this file's directory (SketchyBar sets it from --config); MINBAR_ROOT is the
-# install root that holds bar/, clawd/ and fonts/.
+# install root that holds bar/, clawd/ and fonts/ (`minbar preview` sets it to
+# a checkout).
+: "${MINBAR_ROOT:=$(cd "$CONFIG_DIR/.." && pwd)}"
 source "$CONFIG_DIR/theme.sh"
 source "$CONFIG_DIR/config.sh"
-MINBAR_ROOT="$(cd "$CONFIG_DIR/.." && pwd)"
 # Classic keeps every value at the bar's 13pt; mini drops the icon + value
 # boxes (clock, volume, battery) to FONT_VALUE (theme.sh).
 [ "$MINBAR_VARIANT" = mini ] || FONT_VALUE="$FONT_TEXT"
@@ -223,6 +224,14 @@ for i in $(seq 1 "$MENU_SLOTS"); do
                    click_script="$MENUS -s $i"
 done
 sketchybar --set menu.1 padding_left="$BOX_PAD"
+
+# Invisible probe for `minbar doctor`: on the minbar_probe event it records,
+# from inside the daemon (whose grants the plugins use), whether Accessibility
+# and Full Disk Access are in force (plugins/probe.sh).
+sketchybar --add event minbar_probe \
+           --add item minbar_probe left \
+           --set minbar_probe drawing=off updates=on script="$PLUGIN_DIR/probe.sh" \
+           --subscribe minbar_probe minbar_probe
 
 # Invisible watcher: repopulate the menu labels whenever the focused app changes.
 sketchybar --add item menu_watcher left \

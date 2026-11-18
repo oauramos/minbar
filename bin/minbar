@@ -1,0 +1,19 @@
+#!/bin/bash
+# minbar — MinBar's command line (cli/). `make install` bakes the two paths
+# below; run from a checkout they resolve next to this file, helpers in build/bin.
+set -euo pipefail
+MINBAR_ROOT="@MINBAR_ROOT@"
+MINBAR_LIBEXEC="@MINBAR_LIBEXEC@"
+case "$MINBAR_ROOT" in
+  @*)
+    _self="$0"
+    [ -L "$_self" ] && _self="$(realpath "$_self")"
+    MINBAR_ROOT="$(cd "$(dirname "$_self")/.." && pwd)"
+    MINBAR_LIBEXEC="$MINBAR_ROOT/build/bin"
+    unset _self
+    ;;
+esac
+export MINBAR_ROOT MINBAR_LIBEXEC
+export PATH="$MINBAR_LIBEXEC:$PATH"
+# shellcheck source=../cli/main.sh
+source "$MINBAR_ROOT/cli/main.sh"

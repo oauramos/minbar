@@ -11,7 +11,7 @@
 source "$(dirname "$0")/lib.sh"
 
 DB="$HOME/Library/Group Containers/group.com.apple.usernoted/db2/db"
-STATE="${XDG_STATE_HOME:-$HOME/.local/state}/minbar"
+STATE="$HOME/.local/state/minbar"
 SEEN="$STATE/notifications.seen"
 # usernoted stores Core Data dates: seconds since 2001-01-01 UTC.
 now() { echo $(( $(date +%s) - 978307200 )); }
