@@ -184,7 +184,11 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ pkg ];
+    # sketchybar too: AeroSpace's exec-on-workspace-change and you call it by name.
+    home.packages = [
+      pkg
+      cfg.sketchybarPackage
+    ];
     home.file.".config/minbar/minbar.conf".text = conf;
 
     launchd.agents = {
