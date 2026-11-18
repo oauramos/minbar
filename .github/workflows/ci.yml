@@ -28,7 +28,9 @@ jobs:
           "$RUNNER_TEMP/minbar/bin/minbar" version
           "$RUNNER_TEMP/minbar/bin/minbar" help >/dev/null
 
+  # One macOS runner at a time: three queued together waited out the queue.
   formula:
+    needs: check
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,9 +38,12 @@ jobs:
         run: |
           brew tap-new --no-git minbar/ci
           tap="$(brew --repository minbar/ci)"
-          git archive --format=tar.gz --prefix=minbar/ -o "$RUNNER_TEMP/minbar.tar.gz" HEAD
-          sum=$(shasum -a 256 "$RUNNER_TEMP/minbar.tar.gz" | cut -d' ' -f1)
-          sed -e "s|^  url \".*\"|  url \"file://$RUNNER_TEMP/minbar.tar.gz\"|" \
+          # Homebrew reads the version from the file name.
+          version=$(sed -n 's/^MINBAR_VERSION=//p' cli/common.sh)
+          tarball="$RUNNER_TEMP/minbar-$version.tar.gz"
+          git archive --format=tar.gz --prefix="minbar-$version/" -o "$tarball" HEAD
+          sum=$(shasum -a 256 "$tarball" | cut -d' ' -f1)
+          sed -e "s|^  url \".*\"|  url \"file://$tarball\"|" \
               -e "s|^  sha256 \".*\"|  sha256 \"$sum\"|" \
               -e '/^  head /d' Formula/minbar.rb > "$tap/Formula/minbar.rb"
           brew style "$tap/Formula/minbar.rb"
@@ -46,6 +51,7 @@ jobs:
           brew test minbar/ci/minbar
 
   nix:
+    needs: formula
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
