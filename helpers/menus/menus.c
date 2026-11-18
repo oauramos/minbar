@@ -4,14 +4,18 @@
 //
 // Originally from Felix Kratz's dotfiles (github.com/FelixKratz/dotfiles,
 // .config/sketchybar/helpers/menus/menus.c), GPL-3.0. Modified for MinBar:
-// added post_one / post_key and the `-k` option (2026). Distributed under the
+// added post_one / post_key and the `-k` option, and the prompt only on
+// MENUS_PROMPT (2026). Distributed under the
 // GNU General Public License v3.0, see LICENSE.
 
 #include <Carbon/Carbon.h>
 
+// Untrusted, macOS shows its "would like to control this Mac" dialog only when
+// MENUS_PROMPT is set: the bar runs `menus -l` on every app switch, and a
+// dialog each time loops while a grant is pending (MinBar's probe sets it).
 void ax_init() {
   const void *keys[] = { kAXTrustedCheckOptionPrompt };
-  const void *values[] = { kCFBooleanTrue };
+  const void *values[] = { getenv("MENUS_PROMPT") ? kCFBooleanTrue : kCFBooleanFalse };
 
   CFDictionaryRef options;
   options = CFDictionaryCreate(kCFAllocatorDefault,

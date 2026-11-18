@@ -7,9 +7,9 @@ source "$(dirname "$0")/lib.sh"
 
 out="$HOME/.local/state/minbar/probe"
 mkdir -p "${out%/*}"
-# menus asks AXIsProcessTrusted first and exits 1 when untrusted (it also shows
-# macOS's own prompt then, which is what we want).
-if menus -l >/dev/null 2>&1; then ax=yes; else ax=no; fi
+# menus asks AXIsProcessTrusted first and exits 1 when untrusted; MENUS_PROMPT
+# makes macOS show its dialog then, which lists MinBar in Accessibility.
+if MENUS_PROMPT=1 menus -l >/dev/null 2>&1; then ax=yes; else ax=no; fi
 if /usr/bin/sqlite3 -readonly \
   "file:$HOME/Library/Group Containers/group.com.apple.usernoted/db2/db?mode=ro" \
   'select 1' >/dev/null 2>&1; then fda=yes; else fda=no; fi
