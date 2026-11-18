@@ -36,9 +36,10 @@ class Minbar < Formula
 
   def caveats
     <<~EOS
-      Set MinBar up (settings, the signed app, launchd agents, permissions):
+      Set MinBar up (settings, the signed app, launchd agents, permissions;
+      it also offers the fonts, which are casks a formula cannot depend on):
         minbar setup
-      Fonts the bar draws with (casks, so not installed by this formula):
+      Or install the fonts yourself:
         brew install --cask font-hack-nerd-font font-sf-pro
       Keep its macOS permissions across sketchybar upgrades (once per Mac):
         minbar identity create

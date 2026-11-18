@@ -414,8 +414,16 @@ do_setup() { # minbar setup [--yes] [--no-hooks] [--no-agents]
   [ -x "$MINBAR_LIBEXEC/menus" ] || die "helpers missing in $MINBAR_LIBEXEC (make)"
   write_conf
   load_settings
+  # Fonts are Homebrew casks, which a formula cannot depend on: offer them here.
   missing=$(fonts_missing)
-  [ -z "$missing" ] || note "fonts the bar draws with are missing: brew install --cask $missing"
+  if [ -n "$missing" ]; then
+    # shellcheck disable=SC2086  # $missing is a list of cask names
+    if has brew && confirm "Install the fonts the bar draws with (brew install --cask $missing)?"; then
+      brew install --cask $missing || note "font install failed: brew install --cask $missing"
+    else
+      note "fonts the bar draws with are missing: brew install --cask $missing"
+    fi
+  fi
   do_font
   do_app
   do_hotkey set
