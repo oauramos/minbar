@@ -47,10 +47,13 @@ sketchybar_license() {
 }
 
 # shellcheck disable=SC2120  # tui.sh calls it with --quiet
-do_app() { # minbar app [--force] [--quiet]
-  local force=0 quiet=0 sb version
+do_app() { # minbar app [--force] [--quiet] [--restart]
+  local force=0 quiet=0 restart=0 sb version
   for a in "$@"; do
-    case "$a" in --force) force=1 ;; --quiet) quiet=1 ;; *) die "app [--force] [--quiet]" ;; esac
+    case "$a" in
+      --force) force=1 ;; --quiet) quiet=1 ;; --restart) restart=1 ;;
+      *) die "app [--force] [--quiet] [--restart]" ;;
+    esac
   done
   load_settings
   if [ "$force" = 0 ] && app_current; then
@@ -72,6 +75,10 @@ do_app() { # minbar app [--force] [--quiet]
   fi
   app_wanted >"$APP_STAMP"
   [ "$quiet" = 1 ] || note "built $APP ($(app_signature))"
+  # --restart: a running bar moves onto the new binary (its agent is loaded).
+  if [ "$restart" = 1 ] && launchctl print "$GUI/$LABEL" >/dev/null 2>&1; then
+    launchctl kickstart -k "$GUI/$LABEL" || true
+  fi
 }
 app_signature() {
   if [ ! -d "$APP" ]; then echo "not built"
@@ -134,6 +141,11 @@ xml() { local s=$1; s=${s//&/&amp;}; s=${s//</&lt;}; s=${s//>/&gt;}; printf '%s'
 write_agent() {
   local label=$1 log=$2; shift 2
   local plist="$AGENTS/$label.plist" a
+  # A read-only plist is managed elsewhere (the Nix module installs them 0444).
+  if [ -e "$plist" ] && [ ! -w "$plist" ]; then
+    note "$label is managed elsewhere (read-only plist); leaving it"
+    return 0
+  fi
   mkdir -p "$AGENTS" "$LOGS"
   {
     cat <<EOT
@@ -179,6 +191,7 @@ load_agent() { # (re)load one agent from its plist
   launchctl bootstrap "$GUI" "$AGENTS/$1.plist"
 }
 unload_agent() {
+  [ -e "$AGENTS/$1.plist" ] && [ ! -w "$AGENTS/$1.plist" ] && { note "$1 is managed elsewhere; leaving it"; return 0; }
   launchctl bootout "$GUI/$1" 2>/dev/null || true
   rm -f "$AGENTS/$1.plist"
 }

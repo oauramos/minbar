@@ -15,6 +15,12 @@ Glance up. Who's working, who's stuck waiting on you, who's fast asleep.
 
 </div>
 
+> [!NOTE]
+> clawd now ships as part of **[MinBar](../README.md)** (formerly the standalone `sketchybar-clawd`
+> repo). In MinBar it is on by default: `minbar setup` offers the Claude Code hooks, `minbar clawd`
+> sets the cap, and `CLAWD_*` lines go in `~/.config/minbar/minbar.conf`. The install steps below
+> still set clawd up on a plain SketchyBar of your own.
+
 ---
 
 ## The problem

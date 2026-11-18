@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: brew install shellcheck
+      - name: Privacy check
+        env:
+          PATTERNS: ${{ secrets.PRIVACY_PATTERNS }}
+        run: |
+          if [ -n "$PATTERNS" ]; then printf '%s\n' "$PATTERNS" > .privacy-patterns; fi
+          scripts/privacy-check.sh
+      - name: Build helpers and fonts
+        run: make
+      - name: Shellcheck
+        run: make check
+      - name: Install layout
+        run: |
+          make install PREFIX="$RUNNER_TEMP/minbar"
+          "$RUNNER_TEMP/minbar/bin/minbar" version
+          "$RUNNER_TEMP/minbar/bin/minbar" help >/dev/null
+
+  formula:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the formula from this commit
+        run: |
+          brew tap-new --no-git minbar/ci
+          tap="$(brew --repository minbar/ci)"
+          git archive --format=tar.gz --prefix=minbar/ -o "$RUNNER_TEMP/minbar.tar.gz" HEAD
+          sum=$(shasum -a 256 "$RUNNER_TEMP/minbar.tar.gz" | cut -d' ' -f1)
+          sed -e "s|^  url \".*\"|  url \"file://$RUNNER_TEMP/minbar.tar.gz\"|" \
+              -e "s|^  sha256 \".*\"|  sha256 \"$sum\"|" \
+              -e '/^  head /d' Formula/minbar.rb > "$tap/Formula/minbar.rb"
+          brew style "$tap/Formula/minbar.rb"
+          brew install --build-from-source minbar/ci/minbar
+          brew test minbar/ci/minbar
+
+  nix:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          determinate: false
+      - run: nix flake check -L

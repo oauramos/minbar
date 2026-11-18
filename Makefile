@@ -56,16 +56,13 @@ $(BUILD)/simple-icons-font-$(SI_VERSION).tgz:
 	echo "$(SI_SHA256)  $@.part" | shasum -a 256 -c -
 	mv $@.part $@
 
-# The glyph is written out, not its hex: the bar runs on macOS /bin/bash 3.2,
-# whose printf has no \u.
+# scripts/glyphs.jq turns the font's JSON into the slug -> glyph table.
 # One rule writes both files (macOS make 3.81 has no grouped targets).
 fonts/simple-icons.tsv: $(SI_TARBALL)
 	@mkdir -p $(BUILD)/si fonts
 	tar -xzf $(SI_TARBALL) -C $(BUILD)/si
 	cp $(BUILD)/si/package/font/SimpleIcons.otf fonts/SimpleIcons.otf
-	jq -r '.[] | .slug + "\t" + ([.code | ascii_downcase | explode \
-	  | reduce .[] as $$c (0; . * 16 + (if $$c >= 97 then $$c - 87 else $$c - 48 end))] \
-	  | implode)' $(BUILD)/si/package/font/simple-icons.json > fonts/simple-icons.tsv
+	jq -r -f scripts/glyphs.jq $(BUILD)/si/package/font/simple-icons.json > fonts/simple-icons.tsv
 
 install: all
 	install -d $(PREFIX)/bin $(PREFIX)/libexec/minbar $(PREFIX)/share/minbar
