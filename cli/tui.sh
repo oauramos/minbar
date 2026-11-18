@@ -267,9 +267,10 @@ probe() {
   local f="$STATE/probe" before
   before=$(stat -f %m "$f" 2>/dev/null || echo 0)
   sketchybar --trigger minbar_probe >/dev/null 2>&1 || return 1
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
+  # Up to 10 s: a bar that just started is still drawing every item.
+  for _ in $(seq 1 50); do
     [ "$(stat -f %m "$f" 2>/dev/null || echo 0)" != "$before" ] && break
-    sleep 0.3
+    sleep 0.2
   done
   [ -f "$f" ] && cat "$f"
 }
