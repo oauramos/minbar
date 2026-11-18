@@ -115,7 +115,10 @@ identity_trust() {
   tmp=$(mktemp -d)
   security find-certificate -c "$MINBAR_SIGNING_IDENTITY" -p >"$tmp/cert.pem" 2>/dev/null
   note "trusting '$MINBAR_SIGNING_IDENTITY' for code signing: macOS asks for your password in a dialog"
-  security add-trusted-cert -r trustAsRoot -p codeSign -k "$kc" "$tmp/cert.pem" || true
+  # trustRoot: the certificate is self-signed, so it is its own root
+  # (trustAsRoot is for certificates someone else issued and is refused here).
+  security add-trusted-cert -r trustRoot -p codeSign -k "$kc" "$tmp/cert.pem" ||
+    security add-trusted-cert -r trustAsRoot -p codeSign -k "$kc" "$tmp/cert.pem" || true
   rm -rf "$tmp"
 }
 identity_create() {
