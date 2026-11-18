@@ -1,0 +1,519 @@
+#!/bin/bash
+# MinBar — a SketchyBar config: boxed/segmented look (macOS-sober), AeroSpace
+# workspaces when AeroSpace is installed. Pure bash (SketchyBar v2.23+), macOS 14+.
+# SketchyBar: https://github.com/FelixKratz/SketchyBar
+#
+# Layout (detached rounded boxes floating over a transparent bar):
+#   LEFT     [  App  File  Edit  View … ]                        (native menus via `menus`)
+#   CENTER   [ 1 2 3 4 5 6 7 8 ]                                 (AeroSpace, MINBAR_WORKSPACE_COUNT)
+#   RIGHT    clawd  [ CPU | RAM | DISK | NET ]  [ mic cam ]  [ volume ]  [ bell ]  [ caffeine tailscale bluetooth wifi conn ]  [ battery ]  [ clock ]
+#            stats box (text on classic, coloured bars on mini; MINBAR_VARIANT) + NET are optional (MINBAR_SHOW_STATS / MINBAR_SHOW_NETWORK); battery only on laptops;
+#            [ mic cam ] only while a microphone or camera is in use
+# One linear file on purpose: the right side is added right-to-left, so the
+# --add order is a cross-section invariant. If it ever grows, split by SIDE,
+# not by widget.
+#
+# shellcheck disable=SC2034  # CLAWD_* below are read by the sourced clawd.widget.sh
+
+PLUGIN_DIR="$CONFIG_DIR/plugins"
+
+# Theme (palette, fonts, MENU_SLOTS) and the user's settings (config.sh: the
+# defaults, then ~/.config/minbar/minbar.conf, then `minbar layout` overrides).
+# Plugins cannot see this shell's variables — the daemon spawns them with its
+# own env — so they re-read both files through plugins/lib.sh. CONFIG_DIR is
+# this file's directory (SketchyBar sets it from --config); MINBAR_ROOT is the
+# install root that holds bar/, clawd/ and fonts/.
+source "$CONFIG_DIR/theme.sh"
+source "$CONFIG_DIR/config.sh"
+MINBAR_ROOT="$(cd "$CONFIG_DIR/.." && pwd)"
+# Classic keeps every value at the bar's 13pt; mini drops the icon + value
+# boxes (clock, volume, battery) to FONT_VALUE (theme.sh).
+[ "$MINBAR_VARIANT" = mini ] || FONT_VALUE="$FONT_TEXT"
+# The box spacing token (theme.sh) is per variant: classic has the room.
+[ "$MINBAR_VARIANT" = mini ] || BOX_PAD=$BOX_PAD_CLASSIC
+
+# Battery budget. mini is the laptop bar, so its pollers run slower: CPU and NET
+# every 5s instead of 2s, the wired-link poll every 15s instead of 5s (unplugging
+# fires no event, so a slower poll only delays the icon), the notification count
+# every 30s instead of 10, and clawd animates
+# at 450ms frames (see the clawd block). Every tick is a process
+# spawn and, when a value changes, a WindowServer redraw.
+STAT_FREQ=2; WIRED_FREQ=5; NOTIF_FREQ=10
+if [ "$MINBAR_VARIANT" = mini ]; then STAT_FREQ=5; WIRED_FREQ=15; NOTIF_FREQ=30; fi
+
+# `aerospace`, `menus` and the other tools are called by bare name: MinBar's
+# launchd agent puts its helpers and Homebrew's bin on the daemon's PATH. The
+# variables stay so a click_script reads as "$MENUS -s N".
+AEROSPACE=aerospace
+MENUS=menus
+
+##### Bar #####
+sketchybar --bar \
+  position=top \
+  height=36 \
+  color="$BAR_COLOR" \
+  blur_radius=30 \
+  padding_left=10 \
+  padding_right=10 \
+  sticky=on \
+  shadow=on \
+  font_smoothing=on \
+  display=all
+
+##### Defaults (apply to every item added after this call) #####
+default=(
+  updates=when_shown
+  padding_left="$ITEM_PAD"
+  padding_right="$ITEM_PAD"
+  icon.font="$FONT_ICON"
+  label.font="$FONT_TEXT"
+  icon.color="$FG"
+  label.color="$FG"
+  icon.padding_left=8
+  icon.padding_right=4
+  label.padding_left=4
+  label.padding_right=8
+  background.height=26
+  background.corner_radius=9
+  background.drawing=off
+)
+sketchybar --default "${default[@]}"
+
+# Shared box (bracket) appearance — every cluster gets the same rounded fill.
+# The border line is drawn inside the bracket, so `box` adds its width to the
+# cap: BOX_PAD counts the empty pixels after the line, not from the frame.
+BOX_LINE_W=1
+boxstyle=(
+  background.drawing=on
+  background.color="$BOX_BG"
+  background.border_color="$BOX_BORDER"
+  background.border_width="$BOX_LINE_W"
+  background.corner_radius=9
+  background.height=26
+)
+
+# Invisible fixed-width spacer to create the gaps between boxes.
+spacer=(
+  width=10
+  icon.drawing=off
+  label.drawing=off
+  background.drawing=off
+)
+
+# Every box is made by `box`, so all of them meet the BOX_PAD rule (theme.sh)
+# whatever sits at their ends: an icon, a text, a bar, a fixed-width cell.
+#   box NAME SIDE FIRST LAST MEMBER...
+# FIRST / LAST are the visually leftmost / rightmost items, MEMBER... every item
+# (or /regex/) in the box. It strips the padding on the outer side of FIRST and
+# LAST and puts an invisible cap item beyond each, BOX_PAD + the border line
+# wide, so exactly BOX_PAD empty pixels sit between the line and the content. Inside a box whose items can hide (menu
+# slots, NET, the wired link), the gap between items is padding_left only, so
+# whichever item ends up last has nothing on its right either.
+boxcap=(
+  padding_left=0
+  padding_right=0
+  icon=" "
+  icon.width=$(( BOX_PAD + BOX_LINE_W ))
+  icon.padding_left=0
+  icon.padding_right=0
+  label.drawing=off
+)
+box() {
+  local name=$1 side=$2 first=$3 last=$4; shift 4
+  # Right-side items are listed right to left: "left of" is "after" there.
+  local l=before r=after
+  [ "$side" = right ] && { l=after; r=before; }
+  sketchybar --set "$first" padding_left=0 icon.padding_left=0 \
+             --set "$last" padding_right=0 label.padding_right=0 \
+             --add item "$name.cap.l" "$side" --set "$name.cap.l" "${boxcap[@]}" \
+             --move "$name.cap.l" "$l" "$first" \
+             --add item "$name.cap.r" "$side" --set "$name.cap.r" "${boxcap[@]}" \
+             --move "$name.cap.r" "$r" "$last" \
+             --add bracket "$name" "$name.cap.l" "$@" "$name.cap.r" \
+             --set "$name" "${boxstyle[@]}"
+}
+
+# Icon-only buttons (the control box), laid out on their ink: no icon paddings
+# and no fixed icon.width, so each item is as wide as its glyph (the natural
+# frame is within 1-2px of the ink for every control glyph, Simple Icons too),
+# and padding_left puts BOX_PAD between one icon's ink and the next — the same
+# BOX_PAD the box keeps at its ends (theme.sh). The fixed 18px cells this
+# replaces centred the glyph's advance, not its ink: the ink landed 0-7px into
+# the cell depending on the glyph, so neither the gaps nor the box ends were
+# what the numbers said.
+iconbtn=(
+  padding_left="$BOX_PAD"
+  padding_right=0
+  icon.padding_left=0
+  icon.padding_right=0
+)
+
+# System-monitor bar: no text, just a coloured background whose height the
+# plugin sets (stat_bar in plugins/lib.sh). The width comes from a blank icon
+# of fixed icon.width, not from the item's `width`: a fixed-width item drops its
+# padding in the layout, which glued CPU, RAM and DISK together. Its
+# padding_left is the gap to the previous bar (see box).
+statbar=(
+  padding_left="$STAT_BAR_GAP"
+  padding_right=0
+  icon=" "
+  icon.width="$STAT_BAR_W"
+  icon.padding_left=0
+  icon.padding_right=0
+  label.drawing=off
+  background.drawing=on
+  background.corner_radius=1
+  background.height="$STAT_BAR_MIN"
+  background.y_offset=$(( (STAT_BAR_MIN - STAT_BAR_MAX) / 2 ))
+)
+
+# Classic system monitor: BOLD muted "WORD:" prefix (icon) + regular-weight
+# white value (label). Each value gets a FIXED label.width so the box never
+# resizes as numbers grow/shrink: a centred fixed cell turns the four stats into
+# a steady grid. Percentages max out at "100%" (36px); NET overrides this
+# below (no prefix, a cell sized for "999 - 999").
+statstyle=(
+  padding_left=0
+  padding_right=0
+  icon.font="$FONT_TEXT_BOLD"
+  icon.color="$MUTED"
+  icon.padding_left=8
+  icon.padding_right=2
+  label.font="$FONT_TEXT"
+  label.color="$FG"
+  label.padding_left=2
+  label.padding_right=8
+  label.width=36
+  label.align=center
+)
+
+# A thin "|" divider between the classic stats.
+vsep=(
+  icon="|"
+  icon.color="$DIM"
+  icon.font="SF Pro:Thin:14.0"
+  padding_left=0
+  padding_right=0
+  icon.padding_left=4
+  icon.padding_right=4
+  label.drawing=off
+  background.drawing=off
+)
+
+# ============================================================= LEFT: menus ====
+# The frontmost app's native macOS menus, read live via the `menus` Accessibility
+# helper. Apple glyph (click = Apple menu), then App-name / File / Edit / View …
+# Requires Accessibility permission granted to the helper; until then the slots
+# stay hidden and only the Apple glyph shows.
+sketchybar --add item chevron left \
+           --set chevron icon=󰀵 icon.color="$FG" icon.y_offset=1 label.drawing=off \
+                 click_script="$MENUS -s 0"
+
+# MENU_SLOTS (theme.sh) menu slots. menu.N opens visible menu N (1 = app name,
+# 2 = File, …), aligned with the order `menus -l` lists. Labels are filled by
+# menus.sh; start hidden. How many show changes per app, so the 20px between
+# titles is all padding_left (see box); menu.1 takes 10 of its 18 from the
+# chevron's own right padding.
+for i in $(seq 1 "$MENU_SLOTS"); do
+  sketchybar --add item menu."$i" left \
+             --set menu."$i" drawing=off icon.drawing=off \
+                   label.font="$FONT_TEXT" label.color="$FG" \
+                   padding_left=$(( 2 * BOX_PAD )) padding_right=0 \
+                   label.padding_left=0 label.padding_right=0 \
+                   click_script="$MENUS -s $i"
+done
+sketchybar --set menu.1 padding_left="$BOX_PAD"
+
+# Invisible watcher: repopulate the menu labels whenever the focused app changes.
+sketchybar --add item menu_watcher left \
+           --set menu_watcher drawing=off updates=on script="$PLUGIN_DIR/menus.sh" \
+           --subscribe menu_watcher front_app_switched
+
+box left_box left chevron menu."$MENU_SLOTS" chevron '/menu\..*/'
+
+# ============================================== CENTER: AeroSpace workspaces ==
+# Drawn only with AeroSpace installed (MINBAR_WORKSPACES=auto; off hides them).
+# Workspaces mirror persistent-workspaces in ~/.aerospace.toml. The active one
+# gets a near-white pill (set via space.sh on the aerospace_workspace_change
+# event that AeroSpace's exec-on-workspace-change triggers; `minbar doctor`
+# prints the line to add).
+#
+# Register the custom event BEFORE subscribing to it. SketchyBar silently ignores
+# a --subscribe to an unknown event, so without this --add the workspace items
+# never react to the trigger and the highlight stays stuck on whatever was focused
+# at load time.
+if [ "$MINBAR_WORKSPACES" != off ] && command -v "$AEROSPACE" >/dev/null 2>&1; then
+  sketchybar --add event aerospace_workspace_change
+
+  # MINBAR_WORKSPACE_COUNT pills (config.sh: 8, or 5 on mini).
+  SPACE_ICONS=()
+  for n in $(seq 1 "$MINBAR_WORKSPACE_COUNT"); do SPACE_ICONS+=("$n"); done
+  for i in "${!SPACE_ICONS[@]}"; do
+    sid="${SPACE_ICONS[i]}"
+    sketchybar --add item space."$sid" center \
+               --set space."$sid" \
+                     icon="$sid" \
+                     icon.font="$FONT_TEXT_SEMI" \
+                     icon.padding_left=10 icon.padding_right=10 \
+                     icon.color="$FG" \
+                     background.color="$ACTIVE_BG" \
+                     background.corner_radius=6 \
+                     background.height=22 \
+                     background.drawing=off \
+                     label.drawing=off \
+                     script="$PLUGIN_DIR/space.sh" \
+                     click_script="$AEROSPACE workspace $sid" \
+               --subscribe space."$sid" aerospace_workspace_change
+  done
+  # End pills sit PILL_INSET from the border on all four sides (theme.sh): the one
+  # box not made by `box`, its ends are pills, not content.
+  sketchybar --set space.1 padding_left="$PILL_INSET" \
+             --set space."$MINBAR_WORKSPACE_COUNT" padding_right="$PILL_INSET"
+  sketchybar --add bracket spaces_box '/space\..*/' --set spaces_box "${boxstyle[@]}"
+fi
+
+# ========================= RIGHT: stats | controls | clock ===================
+# Added right-to-left: clock lands at the far right (like macOS), then the
+# control cluster, then the system monitor.
+sketchybar --add item clock right \
+           --set clock update_freq=10 icon=󰅐 icon.color="$FG" script="$PLUGIN_DIR/clock.sh" \
+                 label.font="$FONT_VALUE"
+box clock_box right clock clock clock
+
+# ============================ OPTIONAL battery (laptops only) ================
+# Placed here (just after the clock) so it stacks immediately to the LEFT of the
+# clock — i.e. right after the Wi-Fi icon in reading order. Desktops report no
+# InternalBattery, so pmset gates it out and the rc stays portable.
+if pmset -g batt 2>/dev/null | grep -q "InternalBattery"; then
+  sketchybar --add item sep.rbatt right --set sep.rbatt "${spacer[@]}"
+  # Laid out like volume: a fixed upright battery glyph on the left, the
+  # percentage on the right (battery.sh colours the glyph by state).
+  sketchybar --add item battery right \
+             --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
+                   icon=󰁹 icon.color="$FG" label.font="$FONT_VALUE" \
+             --subscribe battery system_woke power_source_change
+  box battery_box right battery battery battery
+fi
+
+sketchybar --add item sep.r1 right --set sep.r1 "${spacer[@]}"
+
+# Control cluster — caffeine | tailscale | bluetooth | wifi | conn. Added
+# right-to-left, so the visual order ends up caffeine (left) … connection
+# (right). Volume used to live here too but now sits in its own detached box to
+# the left (added below). wifi / bluetooth / tailscale / caffeine follow one
+# click contract (plugins/dblclick.sh): single click toggles the thing (radio,
+# radio, tunnel, keep-awake), double click opens its settings (tailscale: the
+# admin console). connection (the wired link, polled every WIRED_FREQ s: unplugging or
+# deactivating Ethernet fires no event) has no toggle — a click just opens
+# Settings > Network. tailscale only shows where the CLI is installed.
+sketchybar --add item connection right \
+           --set connection "${iconbtn[@]}" update_freq="$WIRED_FREQ" icon="󰒍" icon.color="$FG" label.drawing=off \
+                 script="$PLUGIN_DIR/connection.sh" \
+                 click_script="open x-apple.systempreferences:com.apple.Network-Settings.extension" \
+           --subscribe connection wifi_change system_woke \
+           --add item wifi right \
+           --set wifi "${iconbtn[@]}" update_freq=15 icon=󰖩 icon.color="$FG" label.drawing=off \
+                 label.padding_left="$ITEM_PAD" label.padding_right=0 \
+                 script="$PLUGIN_DIR/wifi.sh" \
+                 click_script="$PLUGIN_DIR/wifi.sh click" \
+           --subscribe wifi wifi_change system_woke \
+           --add item bluetooth right \
+           --set bluetooth "${iconbtn[@]}" update_freq=180 icon=󰂯 icon.color="$FG" label.drawing=off \
+                 script="$PLUGIN_DIR/bluetooth.sh" \
+                 click_script="$PLUGIN_DIR/bluetooth.sh click" \
+           --subscribe bluetooth system_woke
+if command -v tailscale >/dev/null 2>&1; then
+  sketchybar --add item tailscale right \
+             --set tailscale "${iconbtn[@]}" update_freq=30 label.drawing=off \
+                   icon.font="$FONT_BRAND" icon="$(si_glyph tailscale)" icon.color="$MUTED" \
+                   script="$PLUGIN_DIR/tailscale.sh" \
+                   click_script="$PLUGIN_DIR/tailscale.sh click" \
+             --subscribe tailscale system_woke
+fi
+sketchybar --add item caffeine right \
+           --set caffeine "${iconbtn[@]}" update_freq=30 label.drawing=off \
+                 script="$PLUGIN_DIR/caffeine.sh" \
+                 click_script="$PLUGIN_DIR/caffeine.sh click" \
+           --subscribe caffeine system_woke
+control=(connection wifi bluetooth caffeine)
+command -v tailscale >/dev/null 2>&1 && control+=(tailscale)
+box control_box right caffeine connection "${control[@]}"
+
+# Gap between the control box and the notification box.
+sketchybar --add item sep.rbell right --set sep.rbell "${spacer[@]}"
+
+# Notification bell in its own detached box, left of the control cluster, laid
+# out like volume: the glyph, then the count. Click toggles Notification
+# Center, which the hidden native bar's clock no longer reaches; the label
+# counts what arrived since the last click (plugins/notifications.sh: 1-9,
+# "..." past 9, nothing at 0; the count needs Full Disk Access for MinBar).
+# Polled every NOTIF_FREQ s: usernoted fires no event. The count is usually
+# hidden, so the gap to it is its label.padding_left and the glyph keeps no
+# right padding: hidden or shown, both box ends stay BOX_PAD.
+sketchybar --add item notifications right \
+           --set notifications update_freq="$NOTIF_FREQ" icon=󰂚 icon.color="$FG" icon.padding_right=0 \
+                 label.drawing=off label.font="$FONT_VALUE" label.padding_left=4 \
+                 script="$PLUGIN_DIR/notifications.sh" \
+                 click_script="$PLUGIN_DIR/notifications.sh click" \
+           --subscribe notifications system_woke
+box notifications_box right notifications notifications notifications
+
+# Gap between the notification box and the volume box.
+sketchybar --add item sep.rvol right --set sep.rvol "${spacer[@]}"
+
+# Volume in its own detached box, to the left of the notification box. Scroll
+# adjusts the level; click toggles mute, double click opens System Settings >
+# Sound (volume.sh). Label in $FONT_VALUE like the clock and battery.
+sketchybar --add item volume right \
+           --set volume icon=󰕾 icon.font="$FONT_ICON_VOLUME" icon.color="$FG" label.font="$FONT_VALUE" script="$PLUGIN_DIR/volume.sh" \
+                 click_script="$PLUGIN_DIR/volume.sh click" \
+           --subscribe volume volume_change mouse.scrolled
+box volume_box right volume volume volume
+
+# Microphone / camera in use (plugins/mic_cam.sh): macOS's orange and green
+# privacy dots, which with the native menu bar hidden shrink to a few pixels in
+# the screen corner. Its own box left of the volume, drawn only while something
+# records, so it costs no room the rest of the time. mic_cam_change comes from the `mic-cam --watch` launchd
+# agent `minbar setup` installs; the item stays updates=on because
+# it spends most of its life hidden. Click: which apps are recording.
+MIC_CAM_POPUP="sketchybar --set mic_cam.1 popup.drawing=toggle"
+sketchybar --add event mic_cam_change \
+           --add item mic_cam.sep right --set mic_cam.sep "${spacer[@]}" \
+           --add item mic_cam.2 right \
+           --set mic_cam.2 "${iconbtn[@]}" label.drawing=off icon=󰕧 icon.color="$CAM_ON" \
+                 click_script="$MIC_CAM_POPUP" \
+           --add item mic_cam.1 right \
+           --set mic_cam.1 "${iconbtn[@]}" label.drawing=off updates=on \
+                 script="$PLUGIN_DIR/mic_cam.sh" click_script="$MIC_CAM_POPUP" \
+                 popup.align=center popup.y_offset=4 popup.blur_radius=30 \
+                 popup.background.color="$BOX_BG" popup.background.border_color="$BOX_BORDER" \
+                 popup.background.border_width=1 popup.background.corner_radius=9 \
+           --subscribe mic_cam.1 mic_cam_change system_woke mouse.exited.global
+box mic_cam_box right mic_cam.1 mic_cam.2 mic_cam.1 mic_cam.2
+sketchybar --set '/mic_cam.*/' drawing=off
+
+# System monitor, one look per MINBAR_VARIANT. classic: "CPU: 12% | RAM: 56% |
+# DISK: 58% | 0.0 - 0.0" (NET has no prefix). mini: four vertical bars, one colour per system
+# (theme.sh: CPU orange, RAM purple, DISK white, NET gray), no text, so it fits
+# a 13" screen. The plugins draw either through stat_show (plugins/lib.sh).
+# Whole box is optional via MINBAR_SHOW_STATS; when off we keep a single
+# spacer so the volume box and clawd don't touch. Added in REVERSE order
+# because items on the right stack right-to-left — this keeps the visual order
+# CPU RAM DISK NET. NET is separately optional (MINBAR_SHOW_NETWORK).
+if [ "$MINBAR_SHOW_STATS" = 1 ] && [ "$MINBAR_VARIANT" = mini ]; then
+  # stat_bar skips heights it already drew (plugins/lib.sh), but every load
+  # starts the bars at STAT_BAR_MIN: a cache left by the previous load would pin
+  # a steady bar (DISK) at the minimum for good.
+  rm -f /tmp/sketchybar_bar_*
+  sketchybar --add item sep.r2 right --set sep.r2 "${spacer[@]}"
+
+  STATS_ITEMS=()
+  if [ "$MINBAR_SHOW_NETWORK" = 1 ]; then
+    sketchybar --add item network right \
+               --set network "${statbar[@]}" update_freq="$STAT_FREQ" background.color="$STAT_NET" \
+                     script="$PLUGIN_DIR/network.sh"
+    STATS_ITEMS+=(network)
+  fi
+  sketchybar --add item disk right \
+             --set disk "${statbar[@]}" update_freq=60 background.color="$STAT_DISK" \
+                   script="$PLUGIN_DIR/disk.sh" \
+             --add item ram right \
+             --set ram "${statbar[@]}" update_freq=5 background.color="$STAT_RAM" \
+                   script="$PLUGIN_DIR/ram.sh" \
+             --add item cpu right \
+             --set cpu "${statbar[@]}" update_freq="$STAT_FREQ" background.color="$STAT_CPU" \
+                   script="$PLUGIN_DIR/cpu.sh"
+  STATS_ITEMS+=(disk ram cpu)
+  # STATS_ITEMS[0] is the rightmost bar: network, or disk without NET.
+  box stats_box right cpu "${STATS_ITEMS[0]}" "${STATS_ITEMS[@]}"
+
+  sketchybar --add item sep.r3 right --set sep.r3 "${spacer[@]}"
+elif [ "$MINBAR_SHOW_STATS" = 1 ]; then
+  # NET is the bare "<down> - <up>" value, no "NET:" prefix. network.sh never
+  # prints more than three characters a side, so "999 - 999" (55px at SF Pro
+  # 13) is the widest value and the cell is sized for it: the box never moves,
+  # not even during a speed test. The value is right-aligned, so the box end
+  # stays exactly BOX_PAD; at rest ("0.0 - 0.0", 48px) the 7px of slack sits
+  # after the separator. SF Pro's figure space is ~1.5px, not a digit, so
+  # padding the text to a constant width does not work.
+  NET_MAX_W=55
+  sketchybar --add item sep.r2 right --set sep.r2 "${spacer[@]}"
+
+  STATS_ITEMS=()
+  if [ "$MINBAR_SHOW_NETWORK" = 1 ]; then
+    # label.padding_left = the prefixes' icon.padding_left, so the value sits as
+    # far from its separator as "RAM:" and "DISK:" sit from theirs.
+    # label.width includes that padding (box zeroes the right one).
+    sketchybar --add item network right \
+               --set network "${statstyle[@]}" update_freq="$STAT_FREQ" icon.drawing=off script="$PLUGIN_DIR/network.sh" \
+                     label.padding_left=8 label.width=$(( 8 + NET_MAX_W )) label.align=right \
+               --add item statsep.3 right --set statsep.3 "${vsep[@]}"
+    STATS_ITEMS+=(network statsep.3)
+  fi
+  sketchybar --add item disk right \
+             --set disk "${statstyle[@]}" update_freq=60 icon="DISK:" script="$PLUGIN_DIR/disk.sh" \
+             --add item statsep.2 right --set statsep.2 "${vsep[@]}" \
+             --add item ram right \
+             --set ram "${statstyle[@]}" update_freq=5 icon="RAM:" script="$PLUGIN_DIR/ram.sh" \
+             --add item statsep.1 right --set statsep.1 "${vsep[@]}" \
+             --add item cpu right \
+             --set cpu "${statstyle[@]}" update_freq="$STAT_FREQ" icon="CPU:" script="$PLUGIN_DIR/cpu.sh"
+  STATS_ITEMS+=(disk statsep.2 ram statsep.1 cpu)
+  # STATS_ITEMS[0] is the rightmost stat: network, or disk without NET.
+  box stats_box right cpu "${STATS_ITEMS[0]}" "${STATS_ITEMS[@]}"
+
+  sketchybar --add item sep.r3 right --set sep.r3 "${spacer[@]}"
+else
+  # No system monitor: one spacer between the volume box and clawd.
+  sketchybar --add item sep.r2 right --set sep.r2 "${spacer[@]}"
+fi
+
+##### clawd: per-session Claude Code mascot (clawd/, MINBAR_CLAWD) #####
+if [ "$MINBAR_CLAWD" = on ]; then
+  # A herd of clawds, one per running Claude Code session, each acting out its
+  # state (orange hammering, gray asleep, white arms-up); the box glows orange
+  # when one is waiting. clawd ships a neutral sprite: these defaults theme it
+  # to this bar, and a CLAWD_* line in minbar.conf wins over them.
+  : "${CLAWD_COLOR:=f5f5f7}"            # base / fallback sprite color, matches $FG
+  : "${CLAWD_COLOR_WORK:=ef7139}"      # working  -> orange clawd, hammering (Claude orange)
+  : "${CLAWD_COLOR_IDLE:=888888}"      # idle     -> gray clawd, asleep (-_-)
+  : "${CLAWD_COLOR_WAIT:=f5f5f7}"      # waiting  -> white clawd, arms up
+  : "${CLAWD_BG:=$BOX_BG}"              # same frosted-graphite box as the rest of the bar
+  : "${CLAWD_BORDER:=$BOX_BORDER}"
+  : "${CLAWD_RADIUS:=9}"
+  : "${CLAWD_IMG_SCALE:=0.3}"          # small sprite
+  : "${CLAWD_IMG_WIDTH:=26}"
+  : "${CLAWD_IMG_PAD_LEFT:=$BOX_PAD}"  # left margin before the sprite (box standard)
+  : "${CLAWD_AGENT_YOFF:=7}"           # running-agent count sits above the head, not on it
+  # mini (battery budget): every frame is a `sketchybar --set` spawn plus a redraw,
+  # and a working session hammers non-stop. 450ms frames instead of the default
+  # 150 (hammer) / 180 (herd) / 200 (blink) is a third to under half the work.
+  if [ "$MINBAR_VARIANT" = mini ]; then
+    : "${CLAWD_FRAME_MS:=450}" "${CLAWD_HERD_MS:=450}" "${CLAWD_BLINK_MS:=450}"
+  fi
+  source "$MINBAR_ROOT/clawd/src/clawd.widget.sh"
+
+  # The widget builds clawd_box without a right cap, so its right margin is
+  # whatever the sprite leaves: the clawd ink ends CLAWD_INK_TRAIL px before its
+  # CLAWD_IMG_WIDTH frame, then the last sprite's ITEM_PAD padding_right. A cap
+  # beyond the rightmost member (clawd.hibernate, visible or not) tops that up
+  # to BOX_PAD; the bracket is rebuilt with the widget's own member list and the
+  # same name, so the plugin's waiting glow still finds it. The left side already
+  # meets BOX_PAD: CLAWD_IMG_PAD_LEFT, minus the 1px the sprite ink starts into
+  # its frame, plus the border line. Herd mode only (the hero has its own ends).
+  CLAWD_INK_TRAIL=6
+  if [ "$CLAWD_MODE" = herd ]; then
+    # shellcheck disable=SC2086,SC2154  # _box_members: the widget's space-separated member list
+    sketchybar --add item clawd_box.cap.r right \
+               --set clawd_box.cap.r "${boxcap[@]}" \
+                     icon.width=$(( BOX_PAD + BOX_LINE_W - CLAWD_INK_TRAIL - ITEM_PAD )) \
+               --move clawd_box.cap.r before clawd.hibernate \
+               --remove clawd_box \
+               --add bracket clawd_box $_box_members clawd_box.cap.r \
+               --set clawd_box "${boxstyle[@]}" background.color="$CLAWD_BG" \
+                     background.border_color="$CLAWD_BORDER"
+  fi
+fi
+
+##### Force an initial render #####
+sketchybar --update

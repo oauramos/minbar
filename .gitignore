@@ -1,0 +1,7 @@
+build/
+fonts/SimpleIcons.otf
+fonts/simple-icons.tsv
+.DS_Store
+result
+result-*
+.privacy-patterns
