@@ -94,15 +94,39 @@ do_identity() { # minbar identity [status|create]
   load_settings
   case "${1:-status}" in
     status)
-      if has_identity; then echo "'$MINBAR_SIGNING_IDENTITY': in the keychain"
+      if has_identity; then echo "'$MINBAR_SIGNING_IDENTITY': in the keychain, trusted for code signing"
+      elif identity_imported; then echo "'$MINBAR_SIGNING_IDENTITY': in the keychain but NOT trusted (minbar identity create)"
       else echo "'$MINBAR_SIGNING_IDENTITY': missing (minbar identity create)"; fi ;;
     create) identity_create ;;
     *) die "identity [status|create]" ;;
   esac
 }
+# In the keychain at all, trusted or not (find-identity without -v).
+identity_imported() {
+  security find-identity -p codesigning 2>/dev/null | grep -qF "\"$MINBAR_SIGNING_IDENTITY\""
+}
+identity_trust_help() {
+  note "trust it by hand: Keychain Access › login › My Certificates › '$MINBAR_SIGNING_IDENTITY' ›"
+  note "Get Info › Trust › Code Signing: Always Trust; then \`minbar app --restart\`."
+}
+# macOS asks for your password (a system dialog) to store the trust setting.
+identity_trust() {
+  local tmp kc="$HOME/Library/Keychains/login.keychain-db"
+  tmp=$(mktemp -d)
+  security find-certificate -c "$MINBAR_SIGNING_IDENTITY" -p >"$tmp/cert.pem" 2>/dev/null
+  note "trusting '$MINBAR_SIGNING_IDENTITY' for code signing: macOS asks for your password in a dialog"
+  security add-trusted-cert -r trustAsRoot -p codeSign -k "$kc" "$tmp/cert.pem" || true
+  rm -rf "$tmp"
+}
 identity_create() {
   local id="$MINBAR_SIGNING_IDENTITY" tmp kc="$HOME/Library/Keychains/login.keychain-db"
   if has_identity; then note "'$id' is already in the keychain"; return 0; fi
+  if identity_imported; then
+    identity_trust
+    if has_identity; then note "'$id' trusted; \`minbar app --restart\` signs MinBar.app with it"; return 0; fi
+    identity_trust_help
+    return 1
+  fi
   tmp=$(mktemp -d)
   cat >"$tmp/req.cnf" <<EOT
 [req]
@@ -120,13 +144,17 @@ EOT
     -keyout "$tmp/key.pem" -out "$tmp/cert.pem" >/dev/null 2>&1 &&
     /usr/bin/openssl pkcs12 -export -inkey "$tmp/key.pem" -in "$tmp/cert.pem" -name "$id" \
       -out "$tmp/id.p12" -passout pass:minbar >/dev/null 2>&1 &&
-    security import "$tmp/id.p12" -k "$kc" -P minbar -T /usr/bin/codesign >/dev/null &&
-    { note "trusting '$id' for code signing: macOS asks for your password once"; security add-trusted-cert -r trustAsRoot -p codeSign -k "$kc" "$tmp/cert.pem"; }; then
-    :
+    security import "$tmp/id.p12" -k "$kc" -P minbar -T /usr/bin/codesign >/dev/null; then
+    rm -rf "$tmp"
+    identity_trust
+  else
+    rm -rf "$tmp"
   fi
-  rm -rf "$tmp"
   if has_identity; then
-    note "'$id' created; \`minbar app\` signs MinBar.app with it"
+    note "'$id' created; \`minbar app --restart\` signs MinBar.app with it"
+  elif identity_imported; then
+    identity_trust_help
+    return 1
   else
     note "could not create '$id' from the command line. In Keychain Access: Certificate Assistant ›"
     note "Create a Certificate…, name '$id', Identity Type 'Self Signed Root', Certificate Type 'Code Signing'."
@@ -229,7 +257,9 @@ do_font() {
   [ -f "$src" ] || die "$src missing (make fonts)"
   cmp -s "$src" "$dst" 2>/dev/null && return 0
   mkdir -p "${dst%/*}"
-  cp "$src" "$dst"
+  # install, not cp: a copy from a read-only store would stay read-only and
+  # block the next update.
+  install -m 0644 "$src" "$dst"
   note "installed the Simple Icons font"
 }
 # Fonts the theme names but MinBar does not ship (Homebrew casks).

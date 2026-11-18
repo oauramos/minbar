@@ -212,16 +212,20 @@ in
     };
 
     # Before the agents load, so the app they run exists; `app --restart`
-    # moves a running bar onto a rebuilt binary. Every step is idempotent.
+    # moves a running bar onto a rebuilt binary. Every step is idempotent, and a
+    # failing one only warns: the bar must never stop a home-manager switch.
     home.activation.minbar = lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "linkGeneration" ] ''
+      _minbar() {
+        run ${pkg}/bin/minbar "$@" ||
+          echo "minbar: '$*' failed during activation; run \`minbar $*\` to see why" >&2
+      }
       export PATH="${lib.makeBinPath [ cfg.sketchybarPackage ]}:$PATH"
-      run ${pkg}/bin/minbar font
-      run ${pkg}/bin/minbar app --quiet --restart || true
-      run ${pkg}/bin/minbar hotkey set
-      ${optionalString cfg.hideNativeMenuBar "run /usr/bin/defaults write NSGlobalDomain _HIHideMenuBar -bool true"}
-      ${optionalString (
-        cfg.clawd.enable && cfg.clawd.hooks
-      ) "run ${pkg}/bin/minbar hooks install || true"}
+      _minbar font
+      _minbar app --quiet --restart
+      _minbar hotkey set
+      ${optionalString cfg.hideNativeMenuBar "run /usr/bin/defaults write NSGlobalDomain _HIHideMenuBar -bool true || true"}
+      ${optionalString (cfg.clawd.enable && cfg.clawd.hooks) "_minbar hooks install"}
+      unset -f _minbar
     '';
   };
 }

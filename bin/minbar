@@ -14,6 +14,8 @@ case "$MINBAR_ROOT" in
     ;;
 esac
 export MINBAR_ROOT MINBAR_LIBEXEC
-export PATH="$MINBAR_LIBEXEC:$PATH"
+# The macOS tools (defaults, codesign, security, launchctl, shasum) come last, so
+# a restricted PATH such as home-manager's activation still finds them.
+export PATH="$MINBAR_LIBEXEC:$PATH:/usr/bin:/bin:/usr/sbin:/sbin"
 # shellcheck source=../cli/main.sh
 source "$MINBAR_ROOT/cli/main.sh"
