@@ -16,7 +16,7 @@ minbar — a macOS menu bar on SketchyBar. `minbar --…` passes through to `ske
 Install
   minbar setup [--yes] [--no-hooks]   settings, app, agents, font, shortcut, hooks, permissions
   minbar uninstall [--yes]            undo setup (the formula stays: brew uninstall minbar)
-  minbar app [--force]                (re)build and sign ~/Applications/MinBar.app
+  minbar app [--force]                (re)build and sign MinBar.app (/Applications)
   minbar identity [status|create]     the code-signing certificate that keeps permissions
   minbar permissions                  open the two System Settings panes MinBar needs
   minbar hooks [install|remove|status]  clawd's Claude Code hooks

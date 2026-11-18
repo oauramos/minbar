@@ -21,6 +21,7 @@ MINBAR_CLAWD=on              # clawd, one pixel Claude Code mascot per session |
 MINBAR_NC_KEY=45             # the bell types this Notification Center shortcut: N
 MINBAR_NC_MODS=ctrl,alt,cmd  #   with these modifiers (`minbar setup` assigns the same one)
 MINBAR_HIDE_NATIVE_BAR=1     # `minbar setup`: hide the macOS menu bar for good (menubar-alpha)
+MINBAR_APP_DIR=              # where MinBar.app goes; empty: /Applications, or ~/Applications when it is not writable
 MINBAR_SIGNING_IDENTITY="MinBar Code Signing"  # certificate MinBar.app is signed with (`minbar identity create`)
 
 : "${MINBAR_CONF:=$HOME/.config/minbar/minbar.conf}"

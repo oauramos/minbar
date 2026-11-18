@@ -26,7 +26,7 @@ brew install --cask font-hack-nerd-font font-sf-pro
 minbar setup
 ```
 
-`minbar setup` writes `~/.config/minbar/minbar.conf`, builds `~/Applications/MinBar.app`, starts the
+`minbar setup` writes `~/.config/minbar/minbar.conf`, builds `/Applications/MinBar.app`, starts the
 bar, assigns the Notification Center shortcut the bell uses (⌃⌥⌘N), offers to hide the macOS menu bar
 and to install clawd's Claude Code hooks, then opens the two permission panes. Run it again any time:
 every step is idempotent. If SketchyBar already runs as a brew service, stop it first
@@ -83,6 +83,7 @@ minbar --query bar                anything starting with - goes to sketchybar
 | `MINBAR_NC_KEY` / `MINBAR_NC_MODS` | `45` / `ctrl,alt,cmd` | the Notification Center shortcut (⌃⌥⌘N); `minbar hotkey set` after a change |
 | `MINBAR_HIDE_NATIVE_BAR` | `1` | hide the macOS menu bar (`minbar setup` applies it) |
 | `MINBAR_SIGNING_IDENTITY` | `MinBar Code Signing` | the certificate the app is signed with |
+| `MINBAR_APP_DIR` | `/Applications` | where MinBar.app goes (`~/Applications` when `/Applications` is not writable) |
 
 `CLAWD_*` lines style clawd (every key: [clawd/README.md](clawd/README.md)). Colours, fonts and spacing
 live in `bar/theme.sh`.

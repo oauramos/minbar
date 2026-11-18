@@ -11,7 +11,7 @@
 # process launchd starts, and every plugin and helper the bar spawns uses that
 # process's grants. Package managers sign sketchybar ad hoc, so its identity is
 # the file's hash and every upgrade drops the grants. MinBar copies the binary,
-# unmodified, into ~/Applications/MinBar.app (a fixed bundle id) and signs it
+# unmodified, into MinBar.app (/Applications; a fixed bundle id) and signs it
 # with a certificate of your own: the identity becomes "bundle id + that
 # certificate", which an upgrade keeps. No certificate: signed ad hoc, as before.
 
@@ -29,7 +29,7 @@ app_signed_by_identity() {
 app_wanted() {
   local sb
   sb=$(sketchybar_bin)
-  printf '%s %s %s %s\n' "$sb" "$(shasum -a 256 "$sb" | cut -d' ' -f1)" "$MINBAR_VERSION" \
+  printf '%s %s %s %s %s\n' "$APP" "$sb" "$(shasum -a 256 "$sb" | cut -d' ' -f1)" "$MINBAR_VERSION" \
     "$MINBAR_SIGNING_IDENTITY"
 }
 app_current() {
@@ -76,11 +76,21 @@ do_app() { # minbar app [--force] [--quiet] [--restart]
     codesign --force --sign - "$APP"
   fi
   app_wanted >"$APP_STAMP"
+  remove_other_apps
   [ "$quiet" = 1 ] || note "built $APP ($(app_signature))"
   # --restart: a running bar moves onto the new binary (its agent is loaded).
   if [ "$restart" = 1 ] && launchctl print "$GUI/$LABEL" >/dev/null 2>&1; then
     launchctl kickstart -k "$GUI/$LABEL" || true
   fi
+}
+# A MinBar.app MinBar built elsewhere before (it moved): ours by bundle id.
+remove_other_apps() {
+  local d
+  for d in /Applications "$HOME/Applications"; do
+    [ "$d/MinBar.app" = "$APP" ] && continue
+    [ "$(defaults read "$d/MinBar.app/Contents/Info" CFBundleIdentifier 2>/dev/null)" = "$BUNDLE_ID" ] || continue
+    rm -rf "$d/MinBar.app" && note "removed the old $d/MinBar.app"
+  done
 }
 app_signature() {
   if [ ! -d "$APP" ]; then echo "not built"
@@ -394,7 +404,8 @@ MinBar needs two permissions, both for MinBar.app ($APP):
   Accessibility      the app menus on the left, the bell's click
   Full Disk Access   the bell's count (macOS's notification database)
 System Settings opens on each: switch MinBar on. If it is not listed, drag
-MinBar.app from the Finder window that opens into the list. Then: minbar restart.
+MinBar.app from the Finder window that opens into the list (or press +, then
+⇧⌘G and $APP). Then: minbar restart.
 After the app is re-signed (a new certificate), switch it off and on again.
 EOT
   open -R "$APP" 2>/dev/null || true

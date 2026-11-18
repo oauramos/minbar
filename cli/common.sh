@@ -12,7 +12,6 @@ MICCAM=$LABEL.mic-cam
 AGENTS="$HOME/Library/LaunchAgents"
 GUI="gui/$(id -u)"
 
-APP="$HOME/Applications/MinBar.app"
 BUNDLE_ID=com.github.oauramos.minbar
 # Fixed paths, not $XDG_*: bar/config.sh reads the same ones from the daemon.
 CONF_DIR="$HOME/.config/minbar"
@@ -29,6 +28,16 @@ load_settings() {
   # shellcheck source=../bar/config.sh
   source "$BAR/config.sh"
 }
+
+# MinBar.app: MINBAR_APP_DIR, else /Applications (where people and the "+" in
+# System Settings look; admins write there without sudo), else ~/Applications.
+app_dir() {
+  if [ -n "${MINBAR_APP_DIR:-}" ]; then echo "${MINBAR_APP_DIR%/}"
+  elif [ -w /Applications ]; then echo /Applications
+  else echo "$HOME/Applications"; fi
+}
+load_settings
+APP="$(app_dir)/MinBar.app"
 
 # bin/minbar runs with pipefail: never pipe into `grep -q`, which exits on the
 # first match and fails the producer with SIGPIPE (a race: sometimes "no

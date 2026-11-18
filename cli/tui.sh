@@ -18,6 +18,10 @@ do_restart() {
   [ -f "$AGENTS/$LABEL.plist" ] || die "MinBar's agent is not installed (minbar setup)"
   load_settings
   do_app --quiet # an upgraded sketchybar needs a fresh copy in MinBar.app
+  # The app moved (MINBAR_APP_DIR): an agent the CLI wrote gets the new path.
+  if [ -w "$AGENTS/$LABEL.plist" ] && ! grep -qF "$APP/Contents/MacOS/sketchybar" "$AGENTS/$LABEL.plist"; then
+    do_agents install
+  fi
   launchctl kickstart -k "$GUI/$LABEL" || die "launchctl kickstart failed"
   rm -rf "$PREVIEW"
   note "restarted"

@@ -48,6 +48,7 @@ let
     MINBAR_NC_MODS=${cfg.notificationCenter.mods}
     MINBAR_HIDE_NATIVE_BAR=${bool cfg.hideNativeMenuBar}
     MINBAR_SIGNING_IDENTITY="${cfg.signingIdentity}"
+    MINBAR_APP_DIR=${cfg.appDirectory}
   ''
   + cfg.extraConfig;
 
@@ -165,6 +166,12 @@ in
         description = "Its modifiers, a comma list of ctrl, alt, cmd, shift.";
       };
     };
+    appDirectory = mkOption {
+      type = types.str;
+      default = "/Applications";
+      example = lib.literalExpression ''"''${config.home.homeDirectory}/Applications"'';
+      description = "Where MinBar.app is built (/Applications needs an admin account, no sudo).";
+    };
     signingIdentity = mkOption {
       type = types.str;
       default = "MinBar Code Signing";
@@ -193,7 +200,7 @@ in
 
     launchd.agents = {
       minbar = agent label "minbar" [
-        "${home}/Applications/MinBar.app/Contents/MacOS/sketchybar"
+        "${cfg.appDirectory}/MinBar.app/Contents/MacOS/sketchybar"
         "--config"
         "${root}/bar/minbarrc"
       ];
