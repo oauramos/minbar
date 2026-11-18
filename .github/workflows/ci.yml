@@ -36,6 +36,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the formula from this commit
         run: |
+          # Homebrew no longer taps a dependency's tap on its own.
+          brew tap felixkratz/formulae
           brew tap-new --no-git minbar/ci
           tap="$(brew --repository minbar/ci)"
           # Homebrew reads the version from the file name.

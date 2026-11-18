@@ -7,6 +7,7 @@
 #   3. Update url + sha256 below, copy this file into the tap, commit "minbar X.Y.Z".
 # Check locally: brew style Formula/minbar.rb; in a tap: brew audit --strict --new minbar,
 # brew install --build-from-source minbar, brew test minbar.
+# Users tap felixkratz/formulae first: Homebrew no longer taps a dependency's tap.
 class Minbar < Formula
   desc "Menu bar on SketchyBar: app menus, workspaces, controls, a bell and clawd"
   homepage "https://github.com/oauramos/minbar"
