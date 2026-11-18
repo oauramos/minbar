@@ -9,7 +9,7 @@ jobs:
   check:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tools
         run: brew install shellcheck
       - name: Privacy check
@@ -33,7 +33,7 @@ jobs:
     needs: check
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the formula from this commit
         run: |
           # Homebrew neither taps nor trusts a dependency's tap on its own.
@@ -57,7 +57,7 @@ jobs:
     needs: formula
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: DeterminateSystems/nix-installer-action@v23
         with:
           determinate: false

@@ -5,9 +5,17 @@ over a transparent bar, the front app's real menus on the left, AeroSpace worksp
 on the right system stats, a mic/camera indicator, volume, a notification bell, quick toggles, battery,
 clock and [clawd](clawd/README.md), one pixel Claude Code mascot per session.
 
-```
-[  App File Edit View … ]       [ 1 2 3 4 5 ]       clawd [ CPU RAM DISK NET ] [ mic cam ] [ vol ] [ bell ] [ ☕ ts bt wifi eth ] [ bat ] [ clock ]
-```
+![MinBar on a 1440p display, classic layout](docs/bar.png)
+
+**Left**: the front app's own menus, clickable.
+
+![The app menus on the left](docs/bar-left.png)
+
+**Right**: clawd (one per Claude Code session: here three working, two asleep, and twelve idle for over an
+hour folded into one), CPU / RAM / DISK / NET, volume, the notification bell (`...` = more than nine new),
+then caffeinate, Tailscale, Bluetooth, Wi-Fi and the wired link, and the clock.
+
+![The right side, classic layout](docs/bar-right.png)
 
 - **App menus**: the frontmost app's native menus, clickable, read through Accessibility.
 - **Workspaces**: shown only when [AeroSpace](https://github.com/nikitabobko/AeroSpace) is installed.
@@ -17,6 +25,22 @@ clock and [clawd](clawd/README.md), one pixel Claude Code mascot per session.
   double click opens the matching settings.
 - **Hides the macOS menu bar for good**, restoring it on full-screen spaces.
 - **Two layouts**: `classic` for big screens, `mini` for laptops (smaller values, slower polling).
+
+### Layouts
+
+`classic` writes the system monitor out (`CPU: 47% | RAM: 81% | …`, above). `mini`, for 13"/14" screens,
+draws it as four bars (CPU orange, RAM purple, DISK white, NET gray), with 12 pt values and slower polling:
+
+![The right side, mini layout](docs/bar-mini-right.png)
+
+Switch with `MINBAR_VARIANT=mini` in `minbar.conf`, or try it live: `minbar layout variant mini`.
+
+### clawd
+
+One pixel crab per Claude Code session, acting out its state: hammering while it works, asleep when
+idle, arms up when it waits on you (the box glows). Details: [clawd/README.md](clawd/README.md).
+
+![clawd's states](clawd/assets/states.png)
 
 ## Install
 
@@ -52,6 +76,21 @@ minbar app --restart
 After `brew upgrade minbar` or `brew upgrade sketchybar`, run `minbar restart`.
 
 ## Use
+
+`minbar doctor` checks the install from inside the running bar (the permissions are the bar's, not your
+terminal's):
+
+```
+  ✓ daemon running (pid 4301, launchd com.github.oauramos.minbar)
+  ✓ MinBar.app current (signed by MinBar Code Signing)
+  ✓ Accessibility granted (app menus, the bell's click)
+  ✓ Full Disk Access granted (the bell's count)
+  ✓ fonts installed
+  ✓ workspace pill follows AeroSpace (workspace 1)
+  ✓ native menu bar hidden (menubar-alpha running)
+  ✓ mic/camera indicator watching (off)
+  ✓ clawd hooks in ~/.claude/settings.json
+```
 
 ```
 minbar                            interactive menu
