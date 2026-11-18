@@ -20,8 +20,10 @@ APP_STAMP="$STATE/app-built-from"
 has_identity() {
   security find-identity -v -p codesigning 2>/dev/null | grep -qF "\"$MINBAR_SIGNING_IDENTITY\""
 }
+# -dvv: plain -dv prints no Authority lines, which read as "not signed by it"
+# and rebuilt (and re-signed) the app on every restart.
 app_signed_by_identity() {
-  codesign -dv "$APP" 2>&1 | grep -qxF "Authority=$MINBAR_SIGNING_IDENTITY"
+  codesign -dvv "$APP" 2>&1 | grep -qxF "Authority=$MINBAR_SIGNING_IDENTITY"
 }
 # Everything the bundle is made of; a different line means rebuild it.
 app_wanted() {
