@@ -36,7 +36,7 @@ plugin() { # plugin <item> <script> [verb]
 }
 caffeine_on() { pgrep -xf 'caffeinate -disu' >/dev/null 2>&1; } # caffeine.sh's own process only
 wifi_iface() { networksetup -listallhardwareports 2>/dev/null | awk '/Wi-Fi/{getline; print $2; exit}' || true; }
-wifi_on() { networksetup -getairportpower "$(wifi_iface)" 2>/dev/null | grep -q ': On'; }
+wifi_on() { networksetup -getairportpower "$(wifi_iface)" 2>/dev/null | grep ': On' >/dev/null; }
 bt_on() { [ "$(blueutil -p 2>/dev/null)" = 1 ]; }
 ts_state() {
   local s

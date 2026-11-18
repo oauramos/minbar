@@ -30,6 +30,9 @@ load_settings() {
   source "$BAR/config.sh"
 }
 
+# bin/minbar runs with pipefail: never pipe into `grep -q`, which exits on the
+# first match and fails the producer with SIGPIPE (a race: sometimes "no
+# match"). Pipe into `grep … >/dev/null`, which reads to the end.
 die() { echo "minbar: $*" >&2; exit 1; }
 note() { echo "minbar: $*" >&2; }
 # stdin + stderr, not stdout: menus run inside $(…).

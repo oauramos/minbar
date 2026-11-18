@@ -18,12 +18,12 @@
 APP_STAMP="$STATE/app-built-from"
 
 has_identity() {
-  security find-identity -v -p codesigning 2>/dev/null | grep -qF "\"$MINBAR_SIGNING_IDENTITY\""
+  security find-identity -v -p codesigning 2>/dev/null | grep -F "\"$MINBAR_SIGNING_IDENTITY\"" >/dev/null
 }
 # -dvv: plain -dv prints no Authority lines, which read as "not signed by it"
 # and rebuilt (and re-signed) the app on every restart.
 app_signed_by_identity() {
-  codesign -dvv "$APP" 2>&1 | grep -qxF "Authority=$MINBAR_SIGNING_IDENTITY"
+  codesign -dvv "$APP" 2>&1 | grep -xF "Authority=$MINBAR_SIGNING_IDENTITY" >/dev/null
 }
 # Everything the bundle is made of; a different line means rebuild it.
 app_wanted() {
@@ -105,7 +105,7 @@ do_identity() { # minbar identity [status|create]
 }
 # In the keychain at all, trusted or not (find-identity without -v).
 identity_imported() {
-  security find-identity -p codesigning 2>/dev/null | grep -qF "\"$MINBAR_SIGNING_IDENTITY\""
+  security find-identity -p codesigning 2>/dev/null | grep -F "\"$MINBAR_SIGNING_IDENTITY\"" >/dev/null
 }
 identity_trust_help() {
   note "trust it by hand: Keychain Access › login › My Certificates › '$MINBAR_SIGNING_IDENTITY' ›"
@@ -270,8 +270,8 @@ do_font() {
 # Fonts the theme names but MinBar does not ship (Homebrew casks).
 fonts_missing() {
   local dirs=("$HOME/Library/Fonts" /Library/Fonts) missing=()
-  find "${dirs[@]}" -maxdepth 1 -iname 'HackNerdFont*' 2>/dev/null | grep -q . || missing+=(font-hack-nerd-font)
-  find "${dirs[@]}" -maxdepth 1 -iname 'SF-Pro*' 2>/dev/null | grep -q . || missing+=(font-sf-pro)
+  find "${dirs[@]}" -maxdepth 1 -iname 'HackNerdFont*' 2>/dev/null | grep . >/dev/null || missing+=(font-hack-nerd-font)
+  find "${dirs[@]}" -maxdepth 1 -iname 'SF-Pro*' 2>/dev/null | grep . >/dev/null || missing+=(font-sf-pro)
   echo "${missing[*]:-}"
 }
 
