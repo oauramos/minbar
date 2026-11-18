@@ -21,7 +21,8 @@ clock and [clawd](clawd/README.md), one pixel Claude Code mascot per session.
 ## Install
 
 ```sh
-brew tap felixkratz/formulae          # SketchyBar's tap (Homebrew no longer taps a dependency's tap itself)
+brew tap felixkratz/formulae                        # SketchyBar's tap
+brew trust --formula felixkratz/formulae/sketchybar  # Homebrew's tap trust: a dependency from another tap
 brew install oauramos/minbar/minbar
 minbar setup                          # also offers the fonts: font-hack-nerd-font, font-sf-pro
 ```
