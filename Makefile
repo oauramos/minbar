@@ -19,8 +19,9 @@ PRIVATE   := -F/System/Library/PrivateFrameworks
 
 # Simple Icons as a font (CC0): brand logos Nerd Fonts lacks (Tailscale).
 # Codepoints change per release, so fonts/simple-icons.tsv maps slug -> glyph
-# and theme.sh's si_glyph looks them up. Homebrew passes the tarball it fetched
-# as SI_TARBALL (its build has no network); otherwise it is downloaded here.
+# and theme.sh's si_glyph looks them up. Homebrew passes its staged resource as
+# SI_DIR and Nix its fetched tarball as SI_TARBALL (no network in either build);
+# otherwise the tarball is downloaded here.
 SI_VERSION := 16.32.0
 SI_SHA256  := ba62d72011035947551db0b89f4d84814d8208c8c7b06f3f48f3ede38a20ff11
 SI_URL     := https://registry.npmjs.org/simple-icons-font/-/simple-icons-font-$(SI_VERSION).tgz
@@ -57,12 +58,17 @@ $(BUILD)/simple-icons-font-$(SI_VERSION).tgz:
 	mv $@.part $@
 
 # scripts/glyphs.jq turns the font's JSON into the slug -> glyph table.
-# One rule writes both files (macOS make 3.81 has no grouped targets).
-fonts/simple-icons.tsv: $(SI_TARBALL)
-	@mkdir -p $(BUILD)/si fonts
-	tar -xzf $(SI_TARBALL) -C $(BUILD)/si
-	cp $(BUILD)/si/package/font/SimpleIcons.otf fonts/SimpleIcons.otf
-	jq -r -f scripts/glyphs.jq $(BUILD)/si/package/font/simple-icons.json > fonts/simple-icons.tsv
+# One rule writes both files (macOS make 3.81 has no grouped targets). SI_DIR:
+# the package already unpacked (Homebrew stages its resource there); otherwise
+# the tarball is unpacked into build/si.
+fonts/simple-icons.tsv: $(if $(SI_DIR),,$(SI_TARBALL))
+	@mkdir -p fonts
+	@if [ -n "$(SI_DIR)" ]; then src="$(SI_DIR)"; \
+	else mkdir -p $(BUILD)/si && tar -xzf $(SI_TARBALL) -C $(BUILD)/si && src=$(BUILD)/si; fi; \
+	[ -d "$$src/font" ] || src="$$src/package"; \
+	echo "fonts from $$src"; \
+	cp "$$src/font/SimpleIcons.otf" fonts/SimpleIcons.otf && \
+	jq -r -f scripts/glyphs.jq "$$src/font/simple-icons.json" > fonts/simple-icons.tsv
 
 install: all
 	install -d $(PREFIX)/bin $(PREFIX)/libexec/minbar $(PREFIX)/share/minbar

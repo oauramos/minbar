@@ -31,9 +31,9 @@ class Minbar < Formula
   end
 
   def install
-    tarball = resource("simple-icons-font").fetch
+    resource("simple-icons-font").stage(buildpath/"si")
     system "make", "install", "PREFIX=#{prefix}", "RUNTIME_PREFIX=#{opt_prefix}",
-           "SI_TARBALL=#{tarball}", "CC=#{ENV.cc}"
+           "SI_DIR=#{buildpath}/si", "CC=#{ENV.cc}"
   end
 
   def caveats
