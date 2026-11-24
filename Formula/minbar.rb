@@ -12,8 +12,8 @@
 class Minbar < Formula
   desc "Menu bar on SketchyBar: app menus, workspaces, controls, a bell and clawd"
   homepage "https://github.com/oauramos/minbar"
-  url "https://github.com/oauramos/minbar/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "0f0bc521ddba6f9f252d323746be38d33475322e6d71f4c81b5c823586165ecc"
+  url "https://github.com/oauramos/minbar/archive/refs/tags/v0.2.0.tar.gz"
+  sha256 "7020edc0ecd76972ca3059ad44abfb337fd5822918c1942bd2043bb129558360"
   license all_of: ["GPL-3.0-only", "MIT"]
   head "https://github.com/oauramos/minbar.git", branch: "main"
 
