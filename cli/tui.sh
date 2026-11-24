@@ -135,7 +135,7 @@ layout_show() {
   layout_row net MINBAR_SHOW_NETWORK
   layout_row wifi-name MINBAR_SHOW_WIFI_NAME
   if has aerospace; then
-    printf '%-10s %-8s from settings (MINBAR_WORKSPACE_COUNT)\n' workspaces "$(base_val MINBAR_WORKSPACE_COUNT)"
+    workspaces_row
   else
     printf '%-10s %-8s AeroSpace not installed\n' workspaces none
   fi
@@ -311,6 +311,8 @@ do_doctor() {
   else
     focused=$(aerospace list-workspaces --focused 2>/dev/null || true)
     if [ -z "$focused" ]; then bad "aerospace not answering: workspace pills cannot follow focus"
+    elif ! [[ $focused =~ ^[0-9]+$ && $focused -le $MINBAR_WORKSPACE_COUNT ]]; then
+      info "workspace $focused is focused and has no pill (the bar shows 1-$MINBAR_WORKSPACE_COUNT)"
     elif [ "$(sketchybar --query "space.$focused" 2>/dev/null | jq -r '.geometry.background.drawing // "off"')" = on ]; then
       ok "workspace pill follows AeroSpace (workspace $focused)"
     else
@@ -319,6 +321,8 @@ do_doctor() {
       echo "        'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=\$AEROSPACE_FOCUSED_WORKSPACE']"
     fi
   fi
+
+  doctor_workspaces
 
   if [ -f "$AGENTS/$ALPHA.plist" ]; then
     if alpha_loaded; then ok "native menu bar hidden (menubar-alpha running)"
@@ -404,7 +408,7 @@ menu() {
     native_item=()
     [ -f "$AGENTS/$ALPHA.plist" ] && { if alpha_loaded; then native_item=("macOS menu bar: show it"); else native_item=("macOS menu bar: hide it again"); fi; }
     choice=$(gum choose --header "$header   (enter: pick, esc: quit)" \
-      "Status" "Doctor" "Controls" "Layout" "Clawd: sessions shown before +K" \
+      "Status" "Doctor" "Controls" "Layout" "Workspaces" "Clawd: sessions shown before +K" \
       "Reload" "Restart" "$(if bar_hidden; then echo "Show the bar"; else echo "Hide the bar"; fi)" \
       "${native_item[@]}" "$preview_item" "Inspect an item" "Permissions" "Quit") || return 0
     case "$choice" in
@@ -412,6 +416,7 @@ menu() {
       Doctor) action paged do_doctor ;;
       Controls) menu_controls ;;
       Layout) menu_layout ;;
+      Workspaces) menu_workspaces ;;
       Clawd*) action menu_clawd ;;
       Reload) action do_reload ;;
       Restart) action do_restart ;;

@@ -1,4 +1,4 @@
-# MinBar for home-manager on macOS: the settings file, the three launchd agents
+# MinBar for home-manager on macOS: the settings files, the launchd agents
 # and, on activation, the steps `minbar setup` would run (font, signed app,
 # Notification Center shortcut, native-bar hiding, clawd's hooks).
 #
@@ -51,6 +51,15 @@ let
     MINBAR_APP_DIR=${cfg.appDirectory}
   ''
   + cfg.extraConfig;
+
+  appRules = ''
+    # Written by home-manager (programs.minbar.workspaces.apps); edits here are overwritten.
+  ''
+  + lib.concatStrings (
+    lib.mapAttrsToList (name: app: ''
+      ${name} = ${lib.concatStringsSep ", " app.ids} -> ${toString app.workspace}
+    '') cfg.workspaces.apps
+  );
 
   # The daemon's PATH: the helpers and the tools the plugins call by name.
   path = lib.concatStringsSep ":" (
@@ -136,6 +145,32 @@ in
         default = null;
         description = "Workspace pills; null: 5 on mini, 8 on classic.";
       };
+      apps = mkOption {
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              ids = mkOption {
+                type = types.nonEmptyListOf (types.strMatching "[A-Za-z0-9._-]+");
+                description = "Bundle ids; several make one app.";
+              };
+              workspace = mkOption {
+                type = types.either types.ints.positive (types.strMatching "[A-Za-z0-9_-]+");
+                description = "The AeroSpace workspace its new windows open on.";
+              };
+            };
+          }
+        );
+        default = { };
+        example = lib.literalExpression ''
+          {
+            Playwright = {
+              ids = [ "com.google.Chrome" "com.google.chrome.for.testing" ];
+              workspace = 8;
+            };
+          }
+        '';
+        description = "Apps whose windows always open on one workspace; the others open where you are.";
+      };
     };
     clawd = {
       enable = mkOption {
@@ -197,6 +232,7 @@ in
       cfg.sketchybarPackage
     ];
     home.file.".config/minbar/minbar.conf".text = conf;
+    home.file.".config/minbar/workspaces.conf" = mkIf (cfg.workspaces.apps != { }) { text = appRules; };
 
     launchd.agents = {
       minbar = agent label "minbar" [
@@ -210,6 +246,13 @@ in
         "${cfg.sketchybarPackage}/bin/sketchybar"
         "--trigger"
         "mic_cam_change"
+      ];
+    }
+    // lib.optionalAttrs cfg.workspaces.enable {
+      minbar-workspaces = agent "${label}.workspaces" "workspaces" [
+        "/bin/bash"
+        "${root}/bar/plugins/workspaces.sh"
+        "watch"
       ];
     }
     // lib.optionalAttrs cfg.hideNativeMenuBar {

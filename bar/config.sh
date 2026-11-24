@@ -5,8 +5,9 @@
 #   1. the defaults below;
 #   2. ~/.config/minbar/minbar.conf, the user's settings, plain KEY=value
 #      lines (`minbar setup` writes a commented one);
-#   3. ~/.local/state/minbar/layout.env, runtime overrides from `minbar layout`:
-#      only the four layout keys, taken as text, never executed.
+#   3. ~/.local/state/minbar/layout.env, runtime overrides from `minbar layout`
+#      and `minbar workspaces count`: only the five keys below, taken as text,
+#      never executed.
 # Fixed paths, not $XDG_*: the daemon's environment and the shell's differ, and
 # both must read the same files.
 # shellcheck disable=SC2034  # every value is read by whoever sources this
@@ -36,6 +37,8 @@ if [ "${MINBAR_NO_OVERRIDES:-0}" != 1 ] && [ -f "$_minbar_layout" ]; then
     case "$_minbar_k" in
       MINBAR_VARIANT | MINBAR_SHOW_STATS | MINBAR_SHOW_NETWORK | MINBAR_SHOW_WIFI_NAME)
         printf -v "$_minbar_k" '%s' "$_minbar_v" ;;
+      MINBAR_WORKSPACE_COUNT)
+        if [[ $_minbar_v =~ ^([1-9]|1[0-9]|20)$ ]]; then MINBAR_WORKSPACE_COUNT=$_minbar_v; fi ;;
     esac
   done <"$_minbar_layout"
   unset _minbar_k _minbar_v

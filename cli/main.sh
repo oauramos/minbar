@@ -8,6 +8,8 @@ source "$MINBAR_ROOT/cli/common.sh"
 source "$MINBAR_ROOT/cli/install.sh"
 # shellcheck source=tui.sh
 source "$MINBAR_ROOT/cli/tui.sh"
+# shellcheck source=workspaces.sh
+source "$MINBAR_ROOT/cli/workspaces.sh"
 
 usage() {
   cat <<'EOT'
@@ -30,6 +32,10 @@ The running bar
   minbar toggle <caffeine|wifi|bluetooth|tailscale|mute>
   minbar volume <0-100>
   minbar layout [variant <classic|mini|toggle> | <stats|net|wifi-name> <on|off|toggle> | reset]
+  minbar workspaces                   how many pills, and where each app opens
+  minbar workspaces count <1-20|reset>          pills on the bar
+  minbar workspaces set <app> <workspace|dynamic>   app: a name, a bundle id, or Name=id,id
+  minbar workspaces reset             back to the settings
   minbar clawd [N|reset]              clawds shown before +K
   minbar native-bar [show|hide]       the macOS menu bar (menubar-alpha)
   minbar preview [on [dir] | off]     run a checkout's bar live
@@ -60,6 +66,7 @@ case "${1:-}" in
   toggle) shift; do_toggle "$@" ;;
   volume | vol) shift; do_volume "$@" ;;
   layout) shift; do_layout "$@" ;;
+  workspace | workspaces | ws) shift; do_workspaces "$@" ;;
   clawd) shift; do_clawd "$@" ;;
   native-bar | menubar) shift; do_native_bar "$@" ;;
   preview) shift; do_preview "$@" ;;
