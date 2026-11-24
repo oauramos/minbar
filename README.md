@@ -101,6 +101,9 @@ minbar toggle caffeine|wifi|bluetooth|tailscale|mute
 minbar volume 40
 minbar layout variant mini        runtime overrides of minbar.conf; `minbar layout reset` undoes them
 minbar layout stats off
+minbar workspaces                 how many pills, and where each app opens
+minbar workspaces count 6
+minbar workspaces set Slack 5     its new windows open on 5; `dynamic` undoes it
 minbar clawd 6                    clawds shown before +K
 minbar native-bar show|hide       the macOS menu bar
 minbar preview ~/src/minbar       run a checkout's bar live
@@ -118,7 +121,7 @@ minbar --query bar                anything starting with - goes to sketchybar
 | `MINBAR_SHOW_NETWORK` | `1` | NET in it |
 | `MINBAR_SHOW_WIFI_NAME` | `0` | the SSID next to the Wi-Fi glyph |
 | `MINBAR_WORKSPACES` | `auto` | AeroSpace workspaces when installed; `off` hides them |
-| `MINBAR_WORKSPACE_COUNT` | 8 (5 on mini) | workspace pills |
+| `MINBAR_WORKSPACE_COUNT` | 8 (5 on mini) | workspace pills (`minbar workspaces count` overrides it) |
 | `MINBAR_CLAWD` | `on` | clawd |
 | `MINBAR_NC_KEY` / `MINBAR_NC_MODS` | `45` / `ctrl,alt,cmd` | the Notification Center shortcut (⌃⌥⌘N); `minbar hotkey set` after a change |
 | `MINBAR_HIDE_NATIVE_BAR` | `1` | hide the macOS menu bar (`minbar setup` applies it) |
@@ -140,6 +143,30 @@ exec-on-workspace-change = ['/bin/bash', '-c',
 
 and match `persistent-workspaces` to `MINBAR_WORKSPACE_COUNT`. Leave about 42 px of top gap
 (`gaps.outer.top`) so windows clear the bar.
+
+### App workspaces
+
+An app opens where you are (dynamic) unless it has a workspace of its own. Set it from `minbar` ›
+Workspaces, with a right click on a workspace number (the front app), or:
+
+```sh
+minbar workspaces set Slack 5
+minbar workspaces set Playwright=com.google.Chrome,com.google.chrome.for.testing 8   # several apps, one name
+minbar workspaces set Playwright dynamic
+minbar workspaces reset
+```
+
+New windows move there without taking the focus; open ones stay. The same rules as settings, one per
+line in `~/.config/minbar/workspaces.conf`:
+
+```
+Playwright = com.google.Chrome, com.google.chrome.for.testing -> 8
+com.apple.mail -> 3
+```
+
+or `programs.minbar.workspaces.apps` in Nix. `~/.aerospace.toml` is not touched: a launchd agent follows
+AeroSpace's window events, so this needs AeroSpace 0.21 or later (and `minbar agents install` after
+upgrading from 0.1). A rule here wins over an `on-window-detected` one for the same app.
 
 ### Tailscale
 

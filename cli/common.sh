@@ -5,10 +5,11 @@
 
 MINBAR_VERSION=0.1.0
 
-# launchd labels: the bar, and the two helper agents next to it.
+# launchd labels: the bar, and the helper agents next to it.
 LABEL=com.github.oauramos.minbar
 ALPHA=$LABEL.menubar-alpha
 MICCAM=$LABEL.mic-cam
+WORKSPACES=$LABEL.workspaces
 AGENTS="$HOME/Library/LaunchAgents"
 GUI="gui/$(id -u)"
 

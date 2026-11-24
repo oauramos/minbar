@@ -254,13 +254,20 @@ do_agents() { # minbar agents [install|remove]
       write_agent "$MICCAM" mic-cam "$MINBAR_LIBEXEC/mic-cam" --watch "$(command -v sketchybar)" --trigger mic_cam_change
       load_agent "$LABEL"
       load_agent "$MICCAM"
+      # The app → workspace rules (bar/plugins/workspaces.sh).
+      if [ "$MINBAR_WORKSPACES" != off ] && has aerospace; then
+        write_agent "$WORKSPACES" workspaces /bin/bash "$BAR/plugins/workspaces.sh" watch
+        load_agent "$WORKSPACES"
+      else
+        unload_agent "$WORKSPACES"
+      fi
       if [ "$MINBAR_HIDE_NATIVE_BAR" = 1 ]; then
         write_agent "$ALPHA" menubar-alpha "$MINBAR_LIBEXEC/menubar-alpha"
         load_agent "$ALPHA"
       else
         unload_agent "$ALPHA"
       fi ;;
-    remove) unload_agent "$LABEL"; unload_agent "$MICCAM"; unload_agent "$ALPHA" ;;
+    remove) unload_agent "$LABEL"; unload_agent "$MICCAM"; unload_agent "$WORKSPACES"; unload_agent "$ALPHA" ;;
     *) die "agents [install|remove]" ;;
   esac
 }
