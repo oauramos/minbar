@@ -1,3 +1,5 @@
+<img src="app/icon/minbar.svg" width="112" alt="MinBar's icon: a robot claw holding the word bar">
+
 # MinBar
 
 A macOS menu bar built on [SketchyBar](https://github.com/FelixKratz/SketchyBar): sober detached boxes

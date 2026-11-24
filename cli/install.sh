@@ -16,6 +16,7 @@
 # certificate", which an upgrade keeps. No certificate: signed ad hoc, as before.
 
 APP_STAMP="$STATE/app-built-from"
+APP_ICON="$MINBAR_ROOT/app/AppIcon.icns"
 
 has_identity() {
   security find-identity -v -p codesigning 2>/dev/null | grep -F "\"$MINBAR_SIGNING_IDENTITY\"" >/dev/null
@@ -29,8 +30,8 @@ app_signed_by_identity() {
 app_wanted() {
   local sb
   sb=$(sketchybar_bin)
-  printf '%s %s %s %s %s\n' "$APP" "$sb" "$(shasum -a 256 "$sb" | cut -d' ' -f1)" "$MINBAR_VERSION" \
-    "$MINBAR_SIGNING_IDENTITY"
+  printf '%s %s %s %s %s %s\n' "$APP" "$sb" "$(shasum -a 256 "$sb" | cut -d' ' -f1)" "$MINBAR_VERSION" \
+    "$MINBAR_SIGNING_IDENTITY" "$(shasum -a 256 "$APP_ICON" | cut -d' ' -f1)"
 }
 app_current() {
   [ "$(cat "$APP_STAMP" 2>/dev/null)" = "$(app_wanted)" ] &&
@@ -71,6 +72,7 @@ do_app() { # minbar app [--force] [--quiet] [--restart]
   sed -e "s|@VERSION@|${version:-0}|g" -e "s|@BUNDLE_ID@|$BUNDLE_ID|g" \
     -e "s|@MINBAR_VERSION@|$MINBAR_VERSION|g" "$MINBAR_ROOT/app/Info.plist.in" >"$APP/Contents/Info.plist"
   cp "$(sketchybar_license)" "$APP/Contents/Resources/LICENSE.md"
+  install -m 0644 "$APP_ICON" "$APP/Contents/Resources/AppIcon.icns"
   if ! { has_identity && codesign --force --sign "$MINBAR_SIGNING_IDENTITY" "$APP" 2>/dev/null; }; then
     note "no usable '$MINBAR_SIGNING_IDENTITY' certificate: MinBar.app is signed ad hoc, so its permissions reset whenever sketchybar is upgraded (minbar identity create)"
     codesign --force --sign - "$APP"

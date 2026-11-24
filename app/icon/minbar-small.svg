@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<!-- MinBar: a robot claw holding "bar". Drawn for MinBar, no font; GPL-3.0 with the rest. scripts/icon.sh builds AppIcon.icns from it. -->
+<defs>
+<clipPath id="c">
+<rect x="100" y="100" width="824" height="824" rx="186"/></clipPath></defs>
+<rect x="100" y="100" width="824" height="824" rx="186" fill="#000"/>
+<g clip-path="url(#c)">
+<path d="M512 40V296" fill="none" stroke="#aeaeb2" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M512 296L236 456L256 676L350 756" fill="none" stroke="#aeaeb2" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M512 296L236 456L256 676L350 756" fill="none" stroke="#aeaeb2" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/></g>
+<rect x="377.0" y="574.0" width="270" height="104" rx="52.0" fill="#f5f5f7"/></g>
+<rect x="103" y="103" width="818" height="818" rx="183" fill="none" stroke="#2c2c2e" stroke-width="6"/></svg>
