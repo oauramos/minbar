@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<!-- MinBar: a robot claw holding "bar". Drawn for MinBar, no font; GPL-3.0 with the rest. scripts/icon.sh builds AppIcon.icns from it. -->
+<defs>
+<clipPath id="c">
+<rect x="100" y="100" width="824" height="824" rx="186"/></clipPath></defs>
+<rect x="100" y="100" width="824" height="824" rx="186" fill="#000"/>
+<g clip-path="url(#c)">
+<defs>
+<mask id="a0" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+<rect width="1024" height="1024" fill="#fff"/>
+<path d="M512 296L232 458" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M512 296L232 458" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/></g>
+<path d="M232 458L254 684L350 764" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M232 458L254 684L350 764" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/></g>
+<rect x="414" y="214" width="196" height="156" rx="54" fill="#000"/>
+<circle cx="232" cy="458" r="78" fill="#000"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<circle cx="232" cy="458" r="78" fill="#000"/></g></mask>
+<mask id="a1" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+<rect width="1024" height="1024" fill="#fff"/>
+<path d="M232 458L254 684L350 764" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M232 458L254 684L350 764" fill="none" stroke="#000" stroke-width="108" stroke-linecap="round" stroke-linejoin="round"/></g>
+<rect x="414" y="214" width="196" height="156" rx="54" fill="#000"/>
+<circle cx="232" cy="458" r="78" fill="#000"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<circle cx="232" cy="458" r="78" fill="#000"/></g></mask>
+<mask id="a2" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+<rect width="1024" height="1024" fill="#fff"/>
+<rect x="414" y="214" width="196" height="156" rx="54" fill="#000"/>
+<circle cx="232" cy="458" r="78" fill="#000"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<circle cx="232" cy="458" r="78" fill="#000"/></g></mask>
+<mask id="a3" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+<rect width="1024" height="1024" fill="#fff"/>
+<circle cx="232" cy="458" r="78" fill="#000"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<circle cx="232" cy="458" r="78" fill="#000"/></g></mask>
+<mask id="a4" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+<rect width="1024" height="1024" fill="#fff"/></mask></defs>
+<g mask="url(#a0)">
+<rect x="480" y="-60" width="64" height="320" rx="0" fill="#aeaeb2"/></g>
+<g mask="url(#a1)">
+<path d="M512 296L232 458" fill="none" stroke="#aeaeb2" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M512 296L232 458" fill="none" stroke="#aeaeb2" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<g mask="url(#a2)">
+<path d="M232 458L254 684L350 764" fill="none" stroke="#aeaeb2" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<path d="M232 458L254 684L350 764" fill="none" stroke="#aeaeb2" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<g mask="url(#a3)">
+<rect x="436" y="236" width="152" height="112" rx="32" fill="#aeaeb2"/></g>
+<g mask="url(#a4)">
+<circle cx="232" cy="458" r="56" fill="#aeaeb2"/>
+<g transform="translate(1024 0) scale(-1 1)">
+<circle cx="232" cy="458" r="56" fill="#aeaeb2"/></g></g>
+<path d="M356.0 520.8V669.0 M356.0 630.0a39.0 39.0 0 1 1 78.0 0a39.0 39.0 0 1 1 -78.0 0 M487.0 630.0a39.0 39.0 0 1 1 78.0 0a39.0 39.0 0 1 1 -78.0 0 M565.0 591.0V669.0 M619.6 591.0V669.0 M619.6 633.1Q622.8 591.0 664.9 591.8" fill="none" stroke="#f5f5f7" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/></g>
+<rect x="103" y="103" width="818" height="818" rx="183" fill="none" stroke="#2c2c2e" stroke-width="6"/></svg>
