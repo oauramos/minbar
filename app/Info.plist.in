@@ -18,6 +18,8 @@
   <string>@MINBAR_VERSION@</string>
   <key>CFBundleVersion</key>
   <string>@VERSION@</string>
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>MinBar shows whether Bluetooth is on and switches it from its menu.</string>
   <key>LSUIElement</key>
   <true/>
   <key>NSHumanReadableCopyright</key>

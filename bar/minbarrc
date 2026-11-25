@@ -28,7 +28,7 @@ PLUGIN_DIR="$CONFIG_DIR/plugins"
 source "$CONFIG_DIR/theme.sh"
 source "$CONFIG_DIR/config.sh"
 # Classic keeps every value at the bar's 13pt; mini drops the icon + value
-# boxes (clock, volume, battery) to FONT_VALUE (theme.sh).
+# boxes (clock, battery, bell) to FONT_VALUE (theme.sh).
 [ "$MINBAR_VARIANT" = mini ] || FONT_VALUE="$FONT_TEXT"
 # The box spacing token (theme.sh) is per variant: classic has the room.
 [ "$MINBAR_VARIANT" = mini ] || BOX_PAD=$BOX_PAD_CLASSIC
@@ -149,6 +149,26 @@ iconbtn=(
   icon.padding_right=0
 )
 
+# A menu hanging from an item (plugins/popup.sh): the box's look.
+popupstyle=(
+  popup.align=center
+  popup.y_offset=4
+  popup.blur_radius=30
+  popup.background.color="$BOX_BG"
+  popup.background.border_color="$BOX_BORDER"
+  popup.background.border_width=1
+  popup.background.corner_radius=9
+)
+
+# A control (plugins/tray.sh): an icon button whose right click opens its menu.
+# `control <item>` gives the item its plugin, plugins/<item>.sh.
+control() {
+  sketchybar --set "$1" "${popupstyle[@]}" \
+                   script="$PLUGIN_DIR/$1.sh" \
+                   click_script="if [ \"\$BUTTON\" = right ]; then $PLUGIN_DIR/$1.sh menu; fi" \
+             --subscribe "$1" system_woke mouse.entered mouse.exited
+}
+
 # System-monitor bar: no text, just a coloured background whose height the
 # plugin sets (stat_bar in plugins/lib.sh). The width comes from a blank icon
 # of fixed icon.width, not from the item's `width`: a fixed-width item drops its
@@ -176,11 +196,11 @@ statbar=(
 statstyle=(
   padding_left=0
   padding_right=0
-  icon.font="$FONT_TEXT_BOLD"
+  icon.font="$FONT_STAT_BOLD"
   icon.color="$MUTED"
   icon.padding_left=8
   icon.padding_right=2
-  label.font="$FONT_TEXT"
+  label.font="$FONT_STAT"
   label.color="$FG"
   label.padding_left=2
   label.padding_right=8
@@ -272,9 +292,7 @@ if [ "$MINBAR_WORKSPACES" != off ] && command -v "$AEROSPACE" >/dev/null 2>&1; t
                      label.drawing=off \
                      script="$PLUGIN_DIR/space.sh" \
                      click_script="if [ \"\$BUTTON\" = right ]; then $PLUGIN_DIR/space.sh menu; else $AEROSPACE workspace $sid; fi" \
-                     popup.align=center popup.y_offset=4 popup.blur_radius=30 \
-                     popup.background.color="$BOX_BG" popup.background.border_color="$BOX_BORDER" \
-                     popup.background.border_width=1 popup.background.corner_radius=9 \
+                     "${popupstyle[@]}" \
                --subscribe space."$sid" aerospace_workspace_change mouse.entered mouse.exited
   done
   # Right click on a pill: which workspace the front app opens on (space.sh menu,
@@ -318,44 +336,31 @@ sketchybar --add item sep.r1 right --set sep.r1 "${spacer[@]}"
 # Control cluster — caffeine | tailscale | bluetooth | wifi | conn. Added
 # right-to-left, so the visual order ends up caffeine (left) … connection
 # (right). Volume used to live here too but now sits in its own detached box to
-# the left (added below). wifi / bluetooth / tailscale / caffeine follow one
-# click contract (plugins/dblclick.sh): single click toggles the thing (radio,
-# radio, tunnel, keep-awake), double click opens its settings (tailscale: the
-# admin console). connection (the wired link, polled every WIRED_FREQ s: unplugging or
-# deactivating Ethernet fires no event) has no toggle — a click just opens
-# Settings > Network. tailscale only shows where the CLI is installed.
+# the left (added below). All of them follow one contract (plugins/tray.sh): a
+# right click opens a menu under the icon, On / Off / Settings (tailscale: the
+# admin console); a left click does nothing. connection is the wired link, polled
+# every WIRED_FREQ s: unplugging or deactivating Ethernet fires no event.
+# tailscale only shows where the CLI is installed.
 sketchybar --add item connection right \
            --set connection "${iconbtn[@]}" update_freq="$WIRED_FREQ" icon="󰒍" icon.color="$FG" label.drawing=off \
-                 script="$PLUGIN_DIR/connection.sh" \
-                 click_script="open x-apple.systempreferences:com.apple.Network-Settings.extension" \
-           --subscribe connection wifi_change system_woke \
+           --subscribe connection wifi_change \
            --add item wifi right \
            --set wifi "${iconbtn[@]}" update_freq=15 icon=󰖩 icon.color="$FG" label.drawing=off \
                  label.padding_left="$ITEM_PAD" label.padding_right=0 \
-                 script="$PLUGIN_DIR/wifi.sh" \
-                 click_script="$PLUGIN_DIR/wifi.sh click" \
-           --subscribe wifi wifi_change system_woke \
+           --subscribe wifi wifi_change \
            --add item bluetooth right \
-           --set bluetooth "${iconbtn[@]}" update_freq=180 icon=󰂯 icon.color="$FG" label.drawing=off \
-                 script="$PLUGIN_DIR/bluetooth.sh" \
-                 click_script="$PLUGIN_DIR/bluetooth.sh click" \
-           --subscribe bluetooth system_woke
+           --set bluetooth "${iconbtn[@]}" update_freq=180 icon=󰂯 icon.color="$FG" label.drawing=off
 if command -v tailscale >/dev/null 2>&1; then
   sketchybar --add item tailscale right \
              --set tailscale "${iconbtn[@]}" update_freq=30 label.drawing=off \
-                   icon.font="$FONT_BRAND" icon="$(si_glyph tailscale)" icon.color="$MUTED" \
-                   script="$PLUGIN_DIR/tailscale.sh" \
-                   click_script="$PLUGIN_DIR/tailscale.sh click" \
-             --subscribe tailscale system_woke
+                   icon.font="$FONT_BRAND" icon="$(si_glyph tailscale)" icon.color="$MUTED"
 fi
 sketchybar --add item caffeine right \
-           --set caffeine "${iconbtn[@]}" update_freq=30 label.drawing=off \
-                 script="$PLUGIN_DIR/caffeine.sh" \
-                 click_script="$PLUGIN_DIR/caffeine.sh click" \
-           --subscribe caffeine system_woke
-control=(connection wifi bluetooth caffeine)
-command -v tailscale >/dev/null 2>&1 && control+=(tailscale)
-box control_box right caffeine connection "${control[@]}"
+           --set caffeine "${iconbtn[@]}" update_freq=30 label.drawing=off
+controls=(connection wifi bluetooth caffeine)
+command -v tailscale >/dev/null 2>&1 && controls+=(tailscale)
+for item in "${controls[@]}"; do control "$item"; done
+box control_box right caffeine connection "${controls[@]}"
 
 # Gap between the control box and the notification box.
 sketchybar --add item sep.rbell right --set sep.rbell "${spacer[@]}"
@@ -381,31 +386,29 @@ sketchybar --add item sep.rvol right --set sep.rvol "${spacer[@]}"
 
 # Volume in its own detached box, to the left of the notification box. Scroll
 # adjusts the level; click toggles mute, double click opens System Settings >
-# Sound (volume.sh). Label in $FONT_VALUE like the clock and battery.
+# Sound (volume.sh). Label in $FONT_STAT like the system monitor.
 sketchybar --add item volume right \
-           --set volume icon=󰕾 icon.font="$FONT_ICON_VOLUME" icon.color="$FG" label.font="$FONT_VALUE" script="$PLUGIN_DIR/volume.sh" \
+           --set volume icon=󰕾 icon.font="$FONT_ICON_VOLUME" icon.color="$FG" label.font="$FONT_STAT" script="$PLUGIN_DIR/volume.sh" \
                  click_script="$PLUGIN_DIR/volume.sh click" \
            --subscribe volume volume_change mouse.scrolled
 box volume_box right volume volume volume
 
-# Microphone / camera in use (plugins/mic_cam.sh): macOS's orange and green
-# privacy dots, which with the native menu bar hidden shrink to a few pixels in
-# the screen corner. Its own box left of the volume, drawn only while something
-# records, so it costs no room the rest of the time. mic_cam_change comes from the `mic-cam --watch` launchd
-# agent `minbar setup` installs; the item stays updates=on because
-# it spends most of its life hidden. Click: which apps are recording.
+# Microphone / camera in use (plugins/mic_cam.sh): macOS's privacy dots, which
+# with the native menu bar hidden shrink to a few pixels in the screen corner.
+# Its own box left of the volume, drawn only while something records, so it costs
+# no room the rest of the time. mic_cam_change comes from the `mic-cam --watch`
+# launchd agent `minbar setup` installs; the item stays updates=on because it
+# spends most of its life hidden. Click: which apps are recording.
 sketchybar --add event mic_cam_change \
            --add item mic_cam.sep right --set mic_cam.sep "${spacer[@]}" \
            --add item mic_cam.2 right \
-           --set mic_cam.2 "${iconbtn[@]}" label.drawing=off icon=󰕧 icon.color="$CAM_ON" \
+           --set mic_cam.2 "${iconbtn[@]}" label.drawing=off icon=󰕧 icon.color="$FG" \
                  script="$PLUGIN_DIR/mic_cam.sh" click_script="$PLUGIN_DIR/mic_cam.sh click" \
            --subscribe mic_cam.2 mouse.entered mouse.exited \
            --add item mic_cam.1 right \
            --set mic_cam.1 "${iconbtn[@]}" label.drawing=off updates=on \
                  script="$PLUGIN_DIR/mic_cam.sh" click_script="$PLUGIN_DIR/mic_cam.sh click" \
-                 popup.align=center popup.y_offset=4 popup.blur_radius=30 \
-                 popup.background.color="$BOX_BG" popup.background.border_color="$BOX_BORDER" \
-                 popup.background.border_width=1 popup.background.corner_radius=9 \
+                 "${popupstyle[@]}" \
            --subscribe mic_cam.1 mic_cam_change system_woke mouse.entered mouse.exited mouse.exited.global
 box mic_cam_box right mic_cam.1 mic_cam.2 mic_cam.1 mic_cam.2
 sketchybar --set '/mic_cam.*/' drawing=off
@@ -448,13 +451,13 @@ if [ "$MINBAR_SHOW_STATS" = 1 ] && [ "$MINBAR_VARIANT" = mini ]; then
   sketchybar --add item sep.r3 right --set sep.r3 "${spacer[@]}"
 elif [ "$MINBAR_SHOW_STATS" = 1 ]; then
   # NET is the bare "<down> - <up>" value, no "NET:" prefix. network.sh never
-  # prints more than three characters a side, so "999 - 999" (55px at SF Pro
-  # 13) is the widest value and the cell is sized for it: the box never moves,
+  # prints more than three characters a side, so "999 - 999" (51px at SF Pro
+  # 12) is the widest value and the cell is sized for it: the box never moves,
   # not even during a speed test. The value is right-aligned, so the box end
-  # stays exactly BOX_PAD; at rest ("0.0 - 0.0", 48px) the 7px of slack sits
+  # stays exactly BOX_PAD; at rest ("0.0 - 0.0", 44px) the 7px of slack sits
   # after the separator. SF Pro's figure space is ~1.5px, not a digit, so
   # padding the text to a constant width does not work.
-  NET_MAX_W=55
+  NET_MAX_W=51
   sketchybar --add item sep.r2 right --set sep.r2 "${spacer[@]}"
 
   STATS_ITEMS=()

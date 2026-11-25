@@ -3,9 +3,9 @@
 # enough: SketchyBar misses it when the mouse leaves an item's window straight to
 # the outside, as it does down from the popup's last row, and fires it in the gap
 # between the bar and the popup. So the items the popup hangs from and its rows
-# report their own exits (subscribe them to mouse.entered mouse.exited, and one
-# updates=on item to mouse.exited.global), and the popup closes unless something
-# of it was entered meanwhile.
+# report their own exits (subscribe them to mouse.entered mouse.exited;
+# mouse.exited.global counts too, from any item that subscribes to it), and the
+# popup closes unless something of it was entered meanwhile.
 #
 # Define popup_hide, then `source popup.sh <name>` BEFORE lib.sh, since every hover
 # runs it, and call `popup_hover "${1:-}" && exit 0`. To open: popup_start, as
