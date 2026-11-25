@@ -275,10 +275,11 @@ if [ "$MINBAR_WORKSPACES" != off ] && command -v "$AEROSPACE" >/dev/null 2>&1; t
                      popup.align=center popup.y_offset=4 popup.blur_radius=30 \
                      popup.background.color="$BOX_BG" popup.background.border_color="$BOX_BORDER" \
                      popup.background.border_width=1 popup.background.corner_radius=9 \
-               --subscribe space."$sid" aerospace_workspace_change
+               --subscribe space."$sid" aerospace_workspace_change mouse.entered mouse.exited
   done
   # Right click on a pill: which workspace the front app opens on (space.sh menu,
-  # workspaces.sh). One invisible item closes the popup when the mouse leaves.
+  # workspaces.sh). It closes when the mouse leaves: the pills and the popup's
+  # rows report that, and one invisible item the bar as a whole.
   sketchybar --add item ws_menu center \
              --set ws_menu drawing=off updates=on script="$PLUGIN_DIR/space.sh" \
              --subscribe ws_menu mouse.exited.global
