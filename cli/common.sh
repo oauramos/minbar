@@ -3,7 +3,7 @@
 # Paths, names and small helpers every part of the CLI shares. Sourced by
 # cli/main.sh after bin/minbar has set MINBAR_ROOT and MINBAR_LIBEXEC.
 
-MINBAR_VERSION=0.2.0
+MINBAR_VERSION=0.2.1
 
 # launchd labels: the bar, and the helper agents next to it.
 LABEL=com.github.oauramos.minbar
