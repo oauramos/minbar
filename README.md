@@ -26,12 +26,13 @@ then caffeinate, Tailscale, Bluetooth, Wi-Fi and the wired link, and the clock.
 - **Controls**: caffeinate, Tailscale (when installed), Bluetooth, Wi-Fi, wired link; a right click
   opens a menu under the icon: On, Off, Settings.
 - **Hides the macOS menu bar for good**, restoring it on full-screen spaces.
-- **Two layouts**: `classic` for big screens, `mini` for laptops (smaller values, slower polling).
+- **Two layouts**: `classic` for big screens, `mini` for laptops (stats as bars, slower polling).
+- **One font, one weight, one size** for every text, which `minbar font-size` changes.
 
 ### Layouts
 
 `classic` writes the system monitor out (`CPU: 47% | RAM: 81% | …`, above). `mini`, for 13"/14" screens,
-draws it as four bars (CPU orange, RAM purple, DISK white, NET gray), with 12 pt values and slower polling:
+draws it as four bars (CPU orange, RAM purple, DISK white, NET gray), with slower polling:
 
 ![The right side, mini layout](docs/bar-mini-right.png)
 
@@ -103,6 +104,7 @@ minbar status
 minbar reload | restart | hide | show
 minbar toggle caffeine|wifi|bluetooth|tailscale|mute
 minbar volume 40
+minbar font-size 14               every text on the bar, 10 to 16 (also +, -, reset)
 minbar layout variant mini        runtime overrides of minbar.conf; `minbar layout reset` undoes them
 minbar layout stats off
 minbar workspaces                 how many pills, and where each app opens
@@ -121,6 +123,7 @@ minbar --query bar                anything starting with - goes to sketchybar
 | Key | Default | |
 |---|---|---|
 | `MINBAR_VARIANT` | `classic` | `classic` or `mini` |
+| `MINBAR_FONT_SIZE` | `13` | every text on the bar, 10 to 16 points; the icons follow (`minbar font-size` overrides it) |
 | `MINBAR_SHOW_STATS` | `1` | the CPU / RAM / DISK box |
 | `MINBAR_SHOW_NETWORK` | `1` | NET in it |
 | `MINBAR_SHOW_WIFI_NAME` | `0` | the SSID next to the Wi-Fi glyph |

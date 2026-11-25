@@ -27,9 +27,18 @@ PLUGIN_DIR="$CONFIG_DIR/plugins"
 : "${MINBAR_ROOT:=$(cd "$CONFIG_DIR/.." && pwd)}"
 source "$CONFIG_DIR/theme.sh"
 source "$CONFIG_DIR/config.sh"
-# Classic keeps every value at the bar's 13pt; mini drops the icon + value
-# boxes (clock, battery, bell) to FONT_VALUE (theme.sh).
-[ "$MINBAR_VARIANT" = mini ] || FONT_VALUE="$FONT_TEXT"
+set_fonts "$MINBAR_FONT_SIZE"
+
+# A reload does not stop a load still running, which would go on adding its items
+# to the new ones (two quick `minbar font-size`). The last load wins.
+LOADING="${TMPDIR:-/tmp}/minbar.loading"
+previous=$(cat "$LOADING" 2>/dev/null)
+echo $$ >"$LOADING"
+if [ -n "$previous" ] && [ "$previous" != $$ ]; then
+  case "$(ps -o command= -p "$previous" 2>/dev/null)" in
+    */minbarrc*) kill "$previous" 2>/dev/null; sleep 0.1; sketchybar --remove '/.*/' ;;
+  esac
+fi
 # The box spacing token (theme.sh) is per variant: classic has the room.
 [ "$MINBAR_VARIANT" = mini ] || BOX_PAD=$BOX_PAD_CLASSIC
 
@@ -67,7 +76,9 @@ default=(
   padding_left="$ITEM_PAD"
   padding_right="$ITEM_PAD"
   icon.font="$FONT_ICON"
+  icon.y_offset="$ICON_Y"
   label.font="$FONT_TEXT"
+  label.font.features="$FONT_FEATURES"
   icon.color="$FG"
   label.color="$FG"
   icon.padding_left=8
@@ -188,31 +199,37 @@ statbar=(
   background.y_offset=$(( (STAT_BAR_MIN - STAT_BAR_MAX) / 2 ))
 )
 
-# Classic system monitor: BOLD muted "WORD:" prefix (icon) + regular-weight
-# white value (label). Each value gets a FIXED label.width so the box never
-# resizes as numbers grow/shrink: a centred fixed cell turns the four stats into
-# a steady grid. Percentages max out at "100%" (36px); NET overrides this
-# below (no prefix, a cell sized for "999 - 999").
+# Classic system monitor: a grey "WORD:" prefix (icon) + a white value (label).
+# The value starts a fixed 5px after its prefix, in a cell as wide as two figures,
+# so nothing moves as it changes: figures are all one width (FONT_FEATURES) and
+# "100%" grows into the cell's right padding. STAT_W and NET_W are the widths of
+# "88%" and "0.0 - 0.0" at each font size from 10 to 16, as SketchyBar measures
+# them; the cells add their paddings. NET overrides the cell below.
+STAT_WIDTHS=(22 24 26 28 29 31 33)
+NET_WIDTHS=(42 46 49 53 56 59 63)
+STAT_W=${STAT_WIDTHS[MINBAR_FONT_SIZE - 10]}
+NET_W=${NET_WIDTHS[MINBAR_FONT_SIZE - 10]}
 statstyle=(
   padding_left=0
   padding_right=0
-  icon.font="$FONT_STAT_BOLD"
-  icon.color="$MUTED"
+  icon.font="$FONT_TEXT"
+  icon.y_offset=0
+  icon.color="$PREFIX"
   icon.padding_left=8
   icon.padding_right=2
-  label.font="$FONT_STAT"
-  label.color="$FG"
-  label.padding_left=2
-  label.padding_right=8
-  label.width=36
-  label.align=center
+  label.padding_left=3
+  label.padding_right=6
+  label.width=$(( 3 + STAT_W + 6 ))
+  label.align=left
 )
 
-# A thin "|" divider between the classic stats.
+# A thin "|" divider between the classic stats: a line, not text, so it keeps its
+# own size and its y_offset centres it.
 vsep=(
   icon="|"
   icon.color="$DIM"
   icon.font="SF Pro:Thin:14.0"
+  icon.y_offset=1
   padding_left=0
   padding_right=0
   icon.padding_left=4
@@ -227,23 +244,22 @@ vsep=(
 # Requires Accessibility permission granted to the helper; until then the slots
 # stay hidden and only the Apple glyph shows.
 sketchybar --add item chevron left \
-           --set chevron icon=󰀵 icon.color="$FG" icon.y_offset=1 label.drawing=off \
+           --set chevron icon=󰀵 icon.color="$FG" icon.y_offset=$(( ICON_Y + 1 )) label.drawing=off \
                  click_script="$MENUS -s 0"
 
 # MENU_SLOTS (theme.sh) menu slots. menu.N opens visible menu N (1 = app name,
 # 2 = File, …), aligned with the order `menus -l` lists. Labels are filled by
-# menus.sh; start hidden. How many show changes per app, so the 20px between
-# titles is all padding_left (see box); menu.1 takes 10 of its 18 from the
-# chevron's own right padding.
+# menus.sh; start hidden. How many show changes per app, so the 2 * BOX_PAD
+# between titles is all padding_left (see box); menu.1 takes 8 of its own from the
+# chevron's right paddings.
 for i in $(seq 1 "$MENU_SLOTS"); do
   sketchybar --add item menu."$i" left \
              --set menu."$i" drawing=off icon.drawing=off \
-                   label.font="$FONT_TEXT" label.color="$FG" \
                    padding_left=$(( 2 * BOX_PAD )) padding_right=0 \
                    label.padding_left=0 label.padding_right=0 \
                    click_script="$MENUS -s $i"
 done
-sketchybar --set menu.1 padding_left="$BOX_PAD"
+sketchybar --set menu.1 padding_left=$(( 2 * BOX_PAD - 8 ))
 
 # Invisible probe for `minbar doctor`: on the minbar_probe event it records,
 # from inside the daemon (whose grants the plugins use), whether Accessibility
@@ -279,11 +295,14 @@ if [ "$MINBAR_WORKSPACES" != off ] && command -v "$AEROSPACE" >/dev/null 2>&1; t
   for n in $(seq 1 "$MINBAR_WORKSPACE_COUNT"); do SPACE_ICONS+=("$n"); done
   for i in "${!SPACE_ICONS[@]}"; do
     sid="${SPACE_ICONS[i]}"
+    # One-figure pills are all as wide as the widest figure ("1" is narrower).
+    pill=()
+    [ "$sid" -gt 9 ] || pill=(icon.width=$(( 20 + (MINBAR_FONT_SIZE * 62 + 50) / 100 )) icon.align=center)
     sketchybar --add item space."$sid" center \
                --set space."$sid" \
                      icon="$sid" \
-                     icon.font="$FONT_TEXT_SEMI" \
-                     icon.padding_left=10 icon.padding_right=10 \
+                     icon.font="$FONT_TEXT" icon.font.features="$FONT_FEATURES" icon.y_offset=0 \
+                     icon.padding_left=10 icon.padding_right=10 "${pill[@]+"${pill[@]}"}" \
                      icon.color="$FG" \
                      background.color="$ACTIVE_BG" \
                      background.corner_radius=6 \
@@ -312,8 +331,7 @@ fi
 # Added right-to-left: clock lands at the far right (like macOS), then the
 # control cluster, then the system monitor.
 sketchybar --add item clock right \
-           --set clock update_freq=10 icon=󰅐 icon.color="$FG" script="$PLUGIN_DIR/clock.sh" \
-                 label.font="$FONT_VALUE"
+           --set clock update_freq=10 icon=󰅐 icon.color="$FG" script="$PLUGIN_DIR/clock.sh"
 box clock_box right clock clock clock
 
 # ============================ OPTIONAL battery (laptops only) ================
@@ -326,7 +344,7 @@ if pmset -g batt 2>/dev/null | grep -q "InternalBattery"; then
   # percentage on the right (battery.sh colours the glyph by state).
   sketchybar --add item battery right \
              --set battery update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-                   icon=󰁹 icon.color="$FG" label.font="$FONT_VALUE" \
+                   icon=󰁹 icon.color="$FG" \
              --subscribe battery system_woke power_source_change
   box battery_box right battery battery battery
 fi
@@ -346,14 +364,14 @@ sketchybar --add item connection right \
            --subscribe connection wifi_change \
            --add item wifi right \
            --set wifi "${iconbtn[@]}" update_freq=15 icon=󰖩 icon.color="$FG" label.drawing=off \
-                 label.padding_left="$ITEM_PAD" label.padding_right=0 \
+                 label.padding_left=8 label.padding_right=0 \
            --subscribe wifi wifi_change \
            --add item bluetooth right \
            --set bluetooth "${iconbtn[@]}" update_freq=180 icon=󰂯 icon.color="$FG" label.drawing=off
 if command -v tailscale >/dev/null 2>&1; then
   sketchybar --add item tailscale right \
              --set tailscale "${iconbtn[@]}" update_freq=30 label.drawing=off \
-                   icon.font="$FONT_BRAND" icon="$(si_glyph tailscale)" icon.color="$MUTED"
+                   icon.font="$FONT_BRAND" icon.y_offset=0 icon="$(si_glyph tailscale)" icon.color="$MUTED"
 fi
 sketchybar --add item caffeine right \
            --set caffeine "${iconbtn[@]}" update_freq=30 label.drawing=off
@@ -375,7 +393,7 @@ sketchybar --add item sep.rbell right --set sep.rbell "${spacer[@]}"
 # right padding: hidden or shown, both box ends stay BOX_PAD.
 sketchybar --add item notifications right \
            --set notifications update_freq="$NOTIF_FREQ" icon=󰂚 icon.color="$FG" icon.padding_right=0 \
-                 label.drawing=off label.font="$FONT_VALUE" label.padding_left=4 \
+                 label.drawing=off label.padding_left=8 \
                  script="$PLUGIN_DIR/notifications.sh" \
                  click_script="$PLUGIN_DIR/notifications.sh click" \
            --subscribe notifications system_woke
@@ -386,9 +404,9 @@ sketchybar --add item sep.rvol right --set sep.rvol "${spacer[@]}"
 
 # Volume in its own detached box, to the left of the notification box. Scroll
 # adjusts the level; click toggles mute, double click opens System Settings >
-# Sound (volume.sh). Label in $FONT_STAT like the system monitor.
+# Sound (volume.sh).
 sketchybar --add item volume right \
-           --set volume icon=󰕾 icon.font="$FONT_ICON_VOLUME" icon.color="$FG" label.font="$FONT_STAT" script="$PLUGIN_DIR/volume.sh" \
+           --set volume icon=󰕾 icon.font="$FONT_ICON_VOLUME" icon.color="$FG" script="$PLUGIN_DIR/volume.sh" \
                  click_script="$PLUGIN_DIR/volume.sh click" \
            --subscribe volume volume_change mouse.scrolled
 box volume_box right volume volume volume
@@ -450,14 +468,10 @@ if [ "$MINBAR_SHOW_STATS" = 1 ] && [ "$MINBAR_VARIANT" = mini ]; then
 
   sketchybar --add item sep.r3 right --set sep.r3 "${spacer[@]}"
 elif [ "$MINBAR_SHOW_STATS" = 1 ]; then
-  # NET is the bare "<down> - <up>" value, no "NET:" prefix. network.sh never
-  # prints more than three characters a side, so "999 - 999" (51px at SF Pro
-  # 12) is the widest value and the cell is sized for it: the box never moves,
-  # not even during a speed test. The value is right-aligned, so the box end
-  # stays exactly BOX_PAD; at rest ("0.0 - 0.0", 44px) the 7px of slack sits
-  # after the separator. SF Pro's figure space is ~1.5px, not a digit, so
-  # padding the text to a constant width does not work.
-  NET_MAX_W=51
+  # NET is the bare "<down> - <up>" value, no "NET:" prefix. Its cell holds what
+  # it nearly always shows, three characters a side ("0.0 - 0.0"). network.sh
+  # never prints more than three, so "999 - 999" is the widest: right-aligned, it
+  # grows towards its separator, and the box never moves.
   sketchybar --add item sep.r2 right --set sep.r2 "${spacer[@]}"
 
   STATS_ITEMS=()
@@ -467,13 +481,15 @@ elif [ "$MINBAR_SHOW_STATS" = 1 ]; then
     # label.width includes that padding (box zeroes the right one).
     sketchybar --add item network right \
                --set network "${statstyle[@]}" update_freq="$STAT_FREQ" icon.drawing=off script="$PLUGIN_DIR/network.sh" \
-                     label.padding_left=8 label.width=$(( 8 + NET_MAX_W )) label.align=right \
+                     label.padding_left=8 label.width=$(( 8 + NET_W )) label.align=right \
                --add item statsep.3 right --set statsep.3 "${vsep[@]}"
     STATS_ITEMS+=(network statsep.3)
   fi
   sketchybar --add item disk right \
-             --set disk "${statstyle[@]}" update_freq=60 icon="DISK:" script="$PLUGIN_DIR/disk.sh" \
-             --add item statsep.2 right --set statsep.2 "${vsep[@]}" \
+             --set disk "${statstyle[@]}" update_freq=60 icon="DISK:" script="$PLUGIN_DIR/disk.sh"
+  # Without NET, DISK ends the box, and box takes its right padding.
+  [ "$MINBAR_SHOW_NETWORK" = 1 ] || sketchybar --set disk label.width=$(( 3 + STAT_W ))
+  sketchybar --add item statsep.2 right --set statsep.2 "${vsep[@]}" \
              --add item ram right \
              --set ram "${statstyle[@]}" update_freq=5 icon="RAM:" script="$PLUGIN_DIR/ram.sh" \
              --add item statsep.1 right --set statsep.1 "${vsep[@]}" \
@@ -505,6 +521,8 @@ if [ "$MINBAR_CLAWD" = on ]; then
   : "${CLAWD_IMG_SCALE:=0.3}"          # small sprite
   : "${CLAWD_IMG_WIDTH:=26}"
   : "${CLAWD_IMG_PAD_LEFT:=$BOX_PAD}"  # left margin before the sprite (box standard)
+  : "${CLAWD_ASK_FONT:=$BADGE_FONT}"    # its counts in the bar's face
+  : "${CLAWD_DOT_FONT:=$FONT_TEXT}"
   : "${CLAWD_AGENT_YOFF:=7}"           # running-agent count sits above the head, not on it
   # mini (battery budget): every frame is a `sketchybar --set` spawn plus a redraw,
   # and a working session hammers non-stop. 450ms frames instead of the default
@@ -538,3 +556,4 @@ fi
 
 ##### Force an initial render #####
 sketchybar --update
+[ "$(cat "$LOADING" 2>/dev/null)" != $$ ] || rm -f "$LOADING"

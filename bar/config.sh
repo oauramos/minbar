@@ -6,13 +6,14 @@
 #   2. ~/.config/minbar/minbar.conf, the user's settings, plain KEY=value
 #      lines (`minbar setup` writes a commented one);
 #   3. ~/.local/state/minbar/layout.env, runtime overrides from `minbar layout`
-#      and `minbar workspaces count`: only the five keys below, taken as text,
+#      and `minbar workspaces count`: only the six keys below, taken as text,
 #      never executed.
 # Fixed paths, not $XDG_*: the daemon's environment and the shell's differ, and
 # both must read the same files.
 # shellcheck disable=SC2034  # every value is read by whoever sources this
 
-MINBAR_VARIANT=classic       # classic (big screens) | mini (laptops: smaller values, slower polling)
+MINBAR_VARIANT=classic       # classic (big screens) | mini (laptops: stats as bars, slower polling)
+MINBAR_FONT_SIZE=13          # every text on the bar, in points, 10 to 16 (icons follow)
 MINBAR_SHOW_STATS=1          # CPU / RAM / DISK (/ NET) box
 MINBAR_SHOW_NETWORK=1        # NET in that box
 MINBAR_SHOW_WIFI_NAME=0      # SSID next to the Wi-Fi glyph
@@ -39,12 +40,15 @@ if [ "${MINBAR_NO_OVERRIDES:-0}" != 1 ] && [ -f "$_minbar_layout" ]; then
         printf -v "$_minbar_k" '%s' "$_minbar_v" ;;
       MINBAR_WORKSPACE_COUNT)
         if [[ $_minbar_v =~ ^([1-9]|1[0-9]|20)$ ]]; then MINBAR_WORKSPACE_COUNT=$_minbar_v; fi ;;
+      MINBAR_FONT_SIZE)
+        MINBAR_FONT_SIZE=$_minbar_v ;;
     esac
   done <"$_minbar_layout"
   unset _minbar_k _minbar_v
 fi
 unset _minbar_layout
 
+case "$MINBAR_FONT_SIZE" in 1[0-6]) ;; *) MINBAR_FONT_SIZE=13 ;; esac
 if [ -z "$MINBAR_WORKSPACE_COUNT" ]; then
   if [ "$MINBAR_VARIANT" = mini ]; then MINBAR_WORKSPACE_COUNT=5; else MINBAR_WORKSPACE_COUNT=8; fi
 fi

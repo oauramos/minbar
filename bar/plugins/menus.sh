@@ -22,8 +22,6 @@ id=1
 while IFS= read -r title; do
   [ "$id" -gt "$MAX" ] && break
   [ -z "$title" ] && continue
-  # The app-name menu (first line) is bold like macOS; the rest are regular.
-  if [ "$id" -eq 1 ]; then font="$FONT_TEXT_BOLD"; else font="$FONT_TEXT"; fi
-  sketchybar --set "menu.$id" label="$title" label.font="$font" drawing=on
+  sketchybar --set "menu.$id" label="$title" drawing=on
   id=$((id + 1))
 done < <(menus -l 2>/dev/null)

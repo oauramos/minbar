@@ -31,6 +31,7 @@ The running bar
   minbar reload | restart | hide | show
   minbar toggle <caffeine|wifi|bluetooth|tailscale|mute>
   minbar volume <0-100>
+  minbar font-size [10-16 | + | - | reset]   every text on the bar, and its icons
   minbar layout [variant <classic|mini|toggle> | <stats|net|wifi-name> <on|off|toggle> | reset]
   minbar workspaces                   how many pills, and where each app opens
   minbar workspaces count <1-20|reset>          pills on the bar
@@ -66,6 +67,7 @@ case "${1:-}" in
   toggle) shift; do_toggle "$@" ;;
   volume | vol) shift; do_volume "$@" ;;
   layout) shift; do_layout "$@" ;;
+  font-size | fontsize) shift; do_layout font-size "$@" ;;
   workspace | workspaces | ws) shift; do_workspaces "$@" ;;
   clawd) shift; do_clawd "$@" ;;
   native-bar | menubar) shift; do_native_bar "$@" ;;

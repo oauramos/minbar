@@ -14,6 +14,7 @@ set -u
 # silent skip would crash every plugin anyway.
 source "$CONFIG_DIR/theme.sh"
 source "$CONFIG_DIR/config.sh"
+set_fonts "$MINBAR_FONT_SIZE"
 
 # The Wi-Fi device (en0 or en1, by hardware port name), for wifi.sh.
 wifi_iface() { networksetup -listallhardwareports 2>/dev/null | awk '/Wi-Fi/{getline; print $2; exit}'; }
