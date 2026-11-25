@@ -241,11 +241,18 @@ unload_agent() {
   rm -f "$AGENTS/$1.plist"
 }
 # Another SketchyBar (brew services, Nix, a hand-started one) would draw a
-# second bar on top of this one.
+# second bar on top of this one. A bar runs bare or with --config; the other
+# processes of that name are the CLI's calls (`sketchybar --set …`), gone in an
+# instant.
 other_bars() {
-  local mine
+  local mine pid
   mine=$(daemon_pid)
-  pgrep -x sketchybar 2>/dev/null | grep -vx "${mine:-none}" || true
+  for pid in $(pgrep -x sketchybar 2>/dev/null); do
+    [ "$pid" != "$mine" ] || continue
+    case "$(ps -o args= -p "$pid" 2>/dev/null)" in
+      *sketchybar | *sketchybar' --config '* | *sketchybar' -c '*) echo "$pid" ;;
+    esac
+  done
 }
 do_agents() { # minbar agents [install|remove]
   load_settings
