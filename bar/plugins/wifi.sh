@@ -2,21 +2,15 @@
 # Wi-Fi radio power (monochrome): white glyph when the radio is on, muted
 # crossed glyph when off, plus the SSID as a label once joined (unless the host
 # sets MINBAR_SHOW_WIFI_NAME=0). Distinct from connection.sh, which shows the wired
-# link. `wifi.sh click`: single click toggles the radio,
-# double click opens System Settings > Wi-Fi (see dblclick.sh). No arg = refresh.
+# link. Right click: On, Off, Settings (tray.sh). No arg = refresh.
 # shellcheck disable=SC2153  # $NAME is SketchyBar's item name, not a typo for the local $name (the SSID)
-source "$(dirname "$0")/lib.sh"
-source "$(dirname "$0")/dblclick.sh"
+source "$(dirname "$0")/tray.sh"
 
 WIFI_IF=$(wifi_iface)
 
-radio_on() { networksetup -getairportpower "$WIFI_IF" 2>/dev/null | grep -q ': On'; }
+is_on() { networksetup -getairportpower "$WIFI_IF" 2>/dev/null | grep -q ': On'; }
 
-toggle() {
-  if radio_on; then networksetup -setairportpower "$WIFI_IF" off
-  else              networksetup -setairportpower "$WIFI_IF" on
-  fi
-}
+turn()     { networksetup -setairportpower "$WIFI_IF" "$1"; }
 settings() { open "x-apple.systempreferences:com.apple.wifi-settings-extension"; }
 
 # On Tahoe `networksetup -getairportnetwork` is unreliable, so the SSID comes
@@ -30,7 +24,7 @@ ssid() {
 }
 
 render() {
-  if radio_on; then
+  if is_on; then
     local name
     name=$(ssid)
     if [ -n "$name" ]; then
@@ -43,8 +37,4 @@ render() {
   fi
 }
 
-case "${1:-}" in
-  click)  click_dispatch toggle settings ;;
-  toggle) toggle ;;   # straight away, no double-click window (the `sketchybar` TUI)
-esac
-render
+tray "$@"

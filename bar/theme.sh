@@ -13,23 +13,21 @@ MUTED=0xff8e8e93          # secondary label (macOS system gray)
 DIM=0xff5a5a5e            # separators / tertiary
 ACTIVE_BG=0xfff5f5f7      # active workspace fill (near-white pill)
 ACTIVE_FG=0xff1c1c1e      # dark glyph on the active pill
-# The only colour on the bar: one per system-monitor bar…
+# The only colour on the bar: one per system-monitor bar.
 STAT_CPU=0xffff9f0a       # orange (macOS system orange)
 STAT_RAM=0xffbf5af2       # purple (macOS system purple)
 STAT_DISK=$FG             # white
 STAT_NET=$MUTED           # gray
-# …and the privacy indicator (plugins/mic_cam.sh), in macOS's own dot colours.
-MIC_ON=0xffff9f0a         # microphone in use: system orange
-CAM_ON=0xff30d158         # camera in use: system green
 
 ##### Type scale — weight carries meaning #####
 # Text is SF Pro 13: Regular for values (stats, menu titles), Bold for headings
 # (the "CPU:" prefixes, the app name in the menu row), Semibold for the
 # workspace digits in their pills. On the mini bar (MINBAR_VARIANT) the icon +
-# value boxes (clock, volume, battery) go one step down to FONT_VALUE, 12: at
+# value boxes (clock, battery, bell) go one step down to FONT_VALUE, 12: at
 # the same 13 as the workspace digits, a run of Regular text like
 # "Sun 25 Oct 19:51" reads bigger than the spaced-out Semibold pills. The rc
-# sets FONT_VALUE back to FONT_TEXT on classic.
+# sets FONT_VALUE back to FONT_TEXT on classic. The classic system monitor and
+# the volume, on both, are one step down on their own: FONT_STAT, 12.
 # Glyphs are Hack Nerd Font 14. Most (clock, battery, the control box) fill
 # their em box and draw 24px tall on Retina; the volume speaker draws only 18px
 # at 14, so it alone gets FONT_ICON_VOLUME (16): 18 matched them on paper but
@@ -37,6 +35,8 @@ CAM_ON=0xff30d158         # camera in use: system green
 FONT_TEXT="SF Pro:Regular:13.0"
 FONT_VALUE="SF Pro:Regular:12.0"
 FONT_TEXT_BOLD="SF Pro:Bold:13.0"
+FONT_STAT="SF Pro:Regular:12.0"
+FONT_STAT_BOLD="SF Pro:Bold:12.0"
 FONT_TEXT_SEMI="SF Pro:Semibold:13.0"
 FONT_ICON="Hack Nerd Font:Regular:14.0"
 FONT_ICON_VOLUME="Hack Nerd Font:Regular:16.0"

@@ -412,13 +412,14 @@ write_conf() {
 ##### Permissions #####
 
 do_permissions() {
-  # A first attempt from the running bar makes macOS list MinBar in both panes
-  # (and ask for Accessibility), so there is a switch to turn on.
+  # A first attempt from the running bar makes macOS list MinBar in the panes
+  # (and ask for Accessibility and Bluetooth), so there is a switch to turn on.
   if [ -n "$(daemon_pid)" ]; then sketchybar --trigger minbar_probe >/dev/null 2>&1 || true; fi
   cat <<EOT
-MinBar needs two permissions, both for MinBar.app ($APP):
+MinBar needs three permissions, all for MinBar.app ($APP):
   Accessibility      the app menus on the left, the bell's click
   Full Disk Access   the bell's count (macOS's notification database)
+  Bluetooth          the Bluetooth menu (macOS asks for it on its own, once)
 System Settings opens on each: switch MinBar on. If it is not listed, drag
 MinBar.app from the Finder window that opens into the list (or press +, then
 ⇧⌘G and $APP). Then: minbar restart.
@@ -428,6 +429,8 @@ EOT
   open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility" 2>/dev/null || true
   sleep 1
   open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" 2>/dev/null || true
+  sleep 1
+  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Bluetooth" 2>/dev/null || true
 }
 
 ##### setup / uninstall #####

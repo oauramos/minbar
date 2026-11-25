@@ -23,8 +23,8 @@ then caffeinate, Tailscale, Bluetooth, Wi-Fi and the wired link, and the clock.
 - **Workspaces**: shown only when [AeroSpace](https://github.com/nikitabobko/AeroSpace) is installed.
 - **Notification bell**: opens Notification Center (which a hidden menu bar otherwise makes unreachable)
   and counts what arrived since you last looked: 1–9, then `...`.
-- **Controls**: caffeinate, Tailscale (when installed), Bluetooth, Wi-Fi, wired link; click toggles,
-  double click opens the matching settings.
+- **Controls**: caffeinate, Tailscale (when installed), Bluetooth, Wi-Fi, wired link; a right click
+  opens a menu under the icon: On, Off, Settings.
 - **Hides the macOS menu bar for good**, restoring it on full-screen spaces.
 - **Two layouts**: `classic` for big screens, `mini` for laptops (smaller values, slower polling).
 
@@ -63,8 +63,9 @@ Requires macOS 14.2 or later.
 
 ### Permissions, and keeping them
 
-MinBar.app needs **Accessibility** (app menus, the bell's click) and **Full Disk Access** (the bell's
-count, read from macOS's notification database). `minbar permissions` opens both panes.
+MinBar.app needs **Accessibility** (app menus, the bell's click), **Full Disk Access** (the bell's
+count, read from macOS's notification database) and **Bluetooth** (the Bluetooth menu; macOS asks on its
+own). `minbar permissions` opens the panes.
 
 macOS ties those grants to the app's code signature. Package managers sign `sketchybar` ad hoc, so
 every upgrade would drop them. Make a code-signing certificate once per Mac and MinBar signs its app
@@ -87,6 +88,7 @@ terminal's):
   ✓ MinBar.app current (signed by MinBar Code Signing)
   ✓ Accessibility granted (app menus, the bell's click)
   ✓ Full Disk Access granted (the bell's count)
+  ✓ Bluetooth granted (the Bluetooth menu)
   ✓ fonts installed
   ✓ workspace pill follows AeroSpace (workspace 1)
   ✓ native menu bar hidden (menubar-alpha running)

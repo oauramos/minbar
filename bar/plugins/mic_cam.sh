@@ -1,12 +1,12 @@
 #!/bin/bash
-# Microphone / camera in use: macOS's orange and green privacy dots, made
-# legible. With the native menu bar hidden (menubar-alpha) macOS still draws its
-# dot, but as a few pixels in the screen corner, and the app names live in the
-# menu bar's Control Center, which is gone with it.
-# Hidden while nothing records; otherwise its own box with an orange mic and/or
-# a green camera. Slot 1 holds whichever is on (the mic first), slot 2 the
-# camera when both are, so the box ends never need re-padding and the popup
-# always hangs from a drawn item.
+# Microphone / camera in use: macOS's privacy dots, made legible. With the native
+# menu bar hidden (menubar-alpha) macOS still draws its dot, but as a few pixels
+# in the screen corner, and the app names live in the menu bar's Control Center,
+# which is gone with it.
+# Hidden while nothing records; otherwise its own box with a mic and/or a camera.
+# Slot 1 holds whichever is on (the mic first), slot 2 the camera when both are,
+# so the box ends never need re-padding and the popup always hangs from a drawn
+# item.
 #
 # The `mic-cam --watch` agent (installed by `minbar setup`) triggers
 # mic_cam_change on every change, but the state itself always comes from a
@@ -55,9 +55,9 @@ if [ "$MIC" != 1 ] && [ "$CAM" != 1 ]; then
 fi
 
 if [ "$MIC" = 1 ]; then
-  first=(icon="$GLYPH_MIC" icon.color="$MIC_ON")
+  first=(icon="$GLYPH_MIC" icon.color="$FG")
 else
-  first=(icon="$GLYPH_CAM" icon.color="$CAM_ON")
+  first=(icon="$GLYPH_CAM" icon.color="$FG")
 fi
 second=off
 [ "$MIC" = 1 ] && [ "$CAM" = 1 ] && second=on
@@ -74,13 +74,13 @@ while IFS= read -r app; do
   [ -n "$app" ] || continue
   n=$((n + 1))
   rows+=(--add item "mic_cam.row.$n" popup.mic_cam.1
-         --set "mic_cam.row.$n" "${row[@]}" icon="$GLYPH_MIC" icon.color="$MIC_ON" label="$app"
+         --set "mic_cam.row.$n" "${row[@]}" icon="$GLYPH_MIC" icon.color="$FG" label="$app"
          --subscribe "mic_cam.row.$n" mouse.entered mouse.exited)
 done <<<"$APPS"
 if [ "$CAM" = 1 ]; then
   n=$((n + 1))
   rows+=(--add item "mic_cam.row.$n" popup.mic_cam.1
-         --set "mic_cam.row.$n" "${row[@]}" icon="$GLYPH_CAM" icon.color="$CAM_ON" label="Camera in use"
+         --set "mic_cam.row.$n" "${row[@]}" icon="$GLYPH_CAM" icon.color="$FG" label="Camera in use"
          --subscribe "mic_cam.row.$n" mouse.entered mouse.exited)
 fi
 

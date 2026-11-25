@@ -302,6 +302,10 @@ do_doctor() {
     *full_disk_access=yes*) ok "Full Disk Access granted (the bell's count)" ;;
     *full_disk_access=no*) bad "no Full Disk Access: the bell shows no count (minbar permissions)" ;;
   esac
+  case "$p" in
+    *bluetooth=yes*) ok "Bluetooth granted (the Bluetooth menu)" ;;
+    *bluetooth=no*) bad "no Bluetooth permission: the Bluetooth menu cannot switch it (minbar permissions)" ;;
+  esac
 
   missing=$(fonts_missing)
   if [ -z "$missing" ]; then ok "fonts installed"; else bad "fonts missing: brew install --cask $missing"; fi
