@@ -26,6 +26,7 @@ if [ "${1:-}" = menu ]; then
     popup_close
     exit 0
   fi
+  popup_start
   IFS=$'\t' read -r id app < <(aerospace list-windows --focused --format '%{app-bundle-id}%{tab}%{app-name}' 2>/dev/null)
   pinned=$(ws_apps | awk -F'\t' -v w="$WORKSPACE" '$2 == w { out = out (out == "" ? "" : ", ") $1 } END { print out }')
   row=(icon.drawing=off label.font="$FONT_TEXT" label.color="$FG"
@@ -50,7 +51,6 @@ if [ "${1:-}" = menu ]; then
   [ "$n" -gt 0 ] || add "No app in front, nothing pinned here" "$MUTED"
   # A regex that matches nothing only prints a warning, hence the redirect.
   sketchybar --remove '/wsmenu\..*/' >/dev/null 2>&1
-  popup_over
   sketchybar --set '/space\..*/' popup.drawing=off \
              "${rows[@]}" \
              --set "$NAME" popup.drawing=on
