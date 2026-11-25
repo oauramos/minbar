@@ -26,7 +26,7 @@ if [ "${1:-}" = click ]; then
   if popup_is_open mic_cam.1; then
     popup_close
   else
-    popup_over
+    popup_start
     sketchybar --set mic_cam.1 popup.drawing=on
   fi
   exit 0
