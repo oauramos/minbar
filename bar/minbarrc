@@ -394,19 +394,19 @@ box volume_box right volume volume volume
 # records, so it costs no room the rest of the time. mic_cam_change comes from the `mic-cam --watch` launchd
 # agent `minbar setup` installs; the item stays updates=on because
 # it spends most of its life hidden. Click: which apps are recording.
-MIC_CAM_POPUP="sketchybar --set mic_cam.1 popup.drawing=toggle"
 sketchybar --add event mic_cam_change \
            --add item mic_cam.sep right --set mic_cam.sep "${spacer[@]}" \
            --add item mic_cam.2 right \
            --set mic_cam.2 "${iconbtn[@]}" label.drawing=off icon=󰕧 icon.color="$CAM_ON" \
-                 click_script="$MIC_CAM_POPUP" \
+                 script="$PLUGIN_DIR/mic_cam.sh" click_script="$PLUGIN_DIR/mic_cam.sh click" \
+           --subscribe mic_cam.2 mouse.entered mouse.exited \
            --add item mic_cam.1 right \
            --set mic_cam.1 "${iconbtn[@]}" label.drawing=off updates=on \
-                 script="$PLUGIN_DIR/mic_cam.sh" click_script="$MIC_CAM_POPUP" \
+                 script="$PLUGIN_DIR/mic_cam.sh" click_script="$PLUGIN_DIR/mic_cam.sh click" \
                  popup.align=center popup.y_offset=4 popup.blur_radius=30 \
                  popup.background.color="$BOX_BG" popup.background.border_color="$BOX_BORDER" \
                  popup.background.border_width=1 popup.background.corner_radius=9 \
-           --subscribe mic_cam.1 mic_cam_change system_woke mouse.exited.global
+           --subscribe mic_cam.1 mic_cam_change system_woke mouse.entered mouse.exited mouse.exited.global
 box mic_cam_box right mic_cam.1 mic_cam.2 mic_cam.1 mic_cam.2
 sketchybar --set '/mic_cam.*/' drawing=off
 

@@ -9,34 +9,11 @@
 #   - mouse.entered / mouse.exited (the pills and the popup's rows) and
 #     mouse.exited.global (the ws_menu item): close that popup.
 
-# MENU exists while the popup is open and holds what the mouse was last over.
-# mouse.exited.global alone is not enough: SketchyBar misses it when the mouse
-# leaves a pill's or a row's window straight to the outside, as it does down
-# from the last row. So each of them reports its exit, and the popup closes
-# unless something was entered meanwhile (the gap between the bar and the popup
-# is outside too). This comes before lib.sh: every hover on a pill runs it.
-MENU="${TMPDIR:-/tmp}/minbar.wsmenu"
-menu_over() { printf '%s %s\n' "$NAME" "$RANDOM$RANDOM" >"$MENU"; }
-menu_close() {
-  rm -f "$MENU"
-  sketchybar --set '/space\..*/' popup.drawing=off
-}
-# A click script inherits the item's last SENDER, hence no event with "menu".
-case "${1:-${SENDER:-}}" in
-  mouse.entered)
-    [ ! -e "$MENU" ] || menu_over
-    exit 0 ;;
-  mouse.exited | mouse.exited.global)
-    [ -e "$MENU" ] || exit 0
-    was='' now=''
-    read -r was <"$MENU"
-    sleep 0.4
-    [ -e "$MENU" ] && read -r now <"$MENU"
-    [ "$was" = "$now" ] || exit 0
-    # An item's own exit counts only while it is the last one entered.
-    if [ "$SENDER" = mouse.exited.global ] || [ "${was% *}" = "$NAME" ]; then menu_close; fi
-    exit 0 ;;
-esac
+# Before lib.sh: every hover on a pill runs it (popup.sh).
+popup_hide() { sketchybar --set '/space\..*/' popup.drawing=off; }
+# shellcheck source=popup.sh
+source "$(dirname "$0")/popup.sh" workspace
+popup_hover "${1:-}" && exit 0
 
 source "$(dirname "$0")/lib.sh"
 
@@ -45,8 +22,8 @@ WORKSPACE="${NAME#space.}"
 if [ "${1:-}" = menu ]; then
   # shellcheck source=workspaces.sh
   source "$(dirname "$0")/workspaces.sh"
-  if [ "$(sketchybar --query "$NAME" | jq -r '.popup.drawing')" = on ]; then
-    menu_close
+  if popup_is_open "$NAME"; then
+    popup_close
     exit 0
   fi
   IFS=$'\t' read -r id app < <(aerospace list-windows --focused --format '%{app-bundle-id}%{tab}%{app-name}' 2>/dev/null)
@@ -62,7 +39,7 @@ if [ "${1:-}" = menu ]; then
   }
   # One click: the rule, then the popup closes.
   pick() { printf '%q set %q %q %q; rm -f %q; sketchybar --set %q popup.drawing=off' \
-    "$CONFIG_DIR/plugins/workspaces.sh" "$id" "$app" "$1" "$MENU" "$NAME"; }
+    "$CONFIG_DIR/plugins/workspaces.sh" "$id" "$app" "$1" "$POPUP_STATE" "$NAME"; }
   if [ -n "${id:-}" ]; then
     ws=$(ws_lookup "$id")
     if [ "$ws" = dynamic ]; then add "$app opens anywhere" "$MUTED"; else add "$app opens on $ws" "$MUTED"; fi
@@ -73,7 +50,7 @@ if [ "${1:-}" = menu ]; then
   [ "$n" -gt 0 ] || add "No app in front, nothing pinned here" "$MUTED"
   # A regex that matches nothing only prints a warning, hence the redirect.
   sketchybar --remove '/wsmenu\..*/' >/dev/null 2>&1
-  menu_over
+  popup_over
   sketchybar --set '/space\..*/' popup.drawing=off \
              "${rows[@]}" \
              --set "$NAME" popup.drawing=on
