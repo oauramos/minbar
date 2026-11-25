@@ -95,12 +95,13 @@ do_volume() {
 
 ##### Layout: runtime overrides of minbar.conf #####
 
-# KEY=value lines in $OVR, read by config.sh after minbar.conf (only these four
-# keys). A value equal to the settings' one is dropped, so the file only holds
+# KEY=value lines in $OVR, read by config.sh after minbar.conf (only these keys
+# and the workspace count). A value equal to the settings' one is dropped, so the file only holds
 # real overrides and `layout reset` is deleting it.
 layout_key() {
   case "$1" in
     variant) echo MINBAR_VARIANT ;;
+    font-size) echo MINBAR_FONT_SIZE ;;
     stats) echo MINBAR_SHOW_STATS ;;
     net | network) echo MINBAR_SHOW_NETWORK ;;
     wifi-name | wifi | ssid) echo MINBAR_SHOW_WIFI_NAME ;;
@@ -125,12 +126,13 @@ layout_row() { # layout_row <label> KEY: value, plus where it comes from
   local v n
   v=$(cur_val "$2")
   n=$(base_val "$2")
-  [ "$2" = MINBAR_VARIANT ] || { v=$(onoff "$v"); n=$(onoff "$n"); }
+  case "$2" in MINBAR_VARIANT | MINBAR_FONT_SIZE) ;; *) v=$(onoff "$v"); n=$(onoff "$n") ;; esac
   if [ -n "$(ovr_val "$2")" ]; then printf '%-10s %-8s overridden (settings: %s)\n' "$1" "$v" "$n"
   else printf '%-10s %-8s from settings\n' "$1" "$v"; fi
 }
 layout_show() {
   layout_row variant MINBAR_VARIANT
+  layout_row font-size MINBAR_FONT_SIZE
   layout_row stats MINBAR_SHOW_STATS
   layout_row net MINBAR_SHOW_NETWORK
   layout_row wifi-name MINBAR_SHOW_WIFI_NAME
@@ -153,8 +155,20 @@ do_layout() {
         *) die "layout variant classic|mini|toggle" ;;
       esac
       apply_layout ;;
+    font-size)
+      v=$(cur_val MINBAR_FONT_SIZE)
+      case "${2:-}" in
+        "") layout_row font-size MINBAR_FONT_SIZE; return 0 ;;
+        reset) v=$(base_val MINBAR_FONT_SIZE) ;;
+        + | up) v=$((v + 1)) ;;
+        - | down) v=$((v - 1)) ;;
+        *) v=$2 ;;
+      esac
+      [[ $v =~ ^1[0-6]$ ]] || die "font-size <10-16 | + | - | reset> (points; 13 is the default)"
+      set_ovr MINBAR_FONT_SIZE "$v"
+      apply_layout ;;
     *)
-      key=$(layout_key "$1") || die "layout: unknown setting '$1' (variant, stats, net, wifi-name, reset)"
+      key=$(layout_key "$1") || die "layout: unknown setting '$1' (variant, font-size, stats, net, wifi-name, reset)"
       case "${2:-}" in
         on | 1) v=1 ;;
         off | 0) v=0 ;;
@@ -384,15 +398,25 @@ menu_controls() {
     esac
   done
 }
+# Stays open and reloads on every pick, to compare sizes on the bar itself.
+menu_font_size() {
+  local n
+  while true; do
+    n=$(seq 10 16 | gum choose --height 9 --selected "$(cur_val MINBAR_FONT_SIZE)" \
+      --header "font size — now $(cur_val MINBAR_FONT_SIZE), settings $(base_val MINBAR_FONT_SIZE)  (esc: back)") || return 0
+    do_layout font-size "$n" >/dev/null
+  done
+}
 menu_layout() {
   local choice
   while true; do
     choice=$(
       { layout_show | grep -v '^workspaces'; echo "reset to the settings"; } |
-        gum choose --header "layout — enter flips it and reloads; runtime only, minbar.conf stays the default  (esc: back)"
+        gum choose --header "layout — enter changes it and reloads; runtime only, minbar.conf stays the default  (esc: back)"
     ) || return 0
     case "$choice" in
       variant*) action do_layout variant toggle ;;
+      font-size*) action menu_font_size ;;
       stats*) action do_layout stats toggle ;;
       net*) action do_layout net toggle ;;
       wifi-name*) action do_layout wifi-name toggle ;;
@@ -412,7 +436,7 @@ menu() {
     native_item=()
     [ -f "$AGENTS/$ALPHA.plist" ] && { if alpha_loaded; then native_item=("macOS menu bar: show it"); else native_item=("macOS menu bar: hide it again"); fi; }
     choice=$(gum choose --header "$header   (enter: pick, esc: quit)" \
-      "Status" "Doctor" "Controls" "Layout" "Workspaces" "Clawd: sessions shown before +K" \
+      "Status" "Doctor" "Controls" "Layout" "Font size" "Workspaces" "Clawd: sessions shown before +K" \
       "Reload" "Restart" "$(if bar_hidden; then echo "Show the bar"; else echo "Hide the bar"; fi)" \
       "${native_item[@]}" "$preview_item" "Inspect an item" "Permissions" "Quit") || return 0
     case "$choice" in
@@ -420,6 +444,7 @@ menu() {
       Doctor) action paged do_doctor ;;
       Controls) menu_controls ;;
       Layout) menu_layout ;;
+      "Font size") menu_font_size ;;
       Workspaces) menu_workspaces ;;
       Clawd*) action menu_clawd ;;
       Reload) action do_reload ;;

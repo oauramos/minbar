@@ -36,6 +36,7 @@ let
   conf = ''
     # Written by home-manager (programs.minbar); edits here are overwritten.
     MINBAR_VARIANT=${cfg.variant}
+    MINBAR_FONT_SIZE=${toString cfg.fontSize}
     MINBAR_SHOW_STATS=${bool cfg.showStats}
     MINBAR_SHOW_NETWORK=${bool cfg.showNetwork}
     MINBAR_SHOW_WIFI_NAME=${bool cfg.showWifiName}
@@ -117,7 +118,12 @@ in
         "mini"
       ];
       default = "classic";
-      description = "classic for big screens; mini for laptops (smaller values, slower polling).";
+      description = "classic for big screens; mini for laptops (stats as bars, slower polling).";
+    };
+    fontSize = mkOption {
+      type = types.ints.between 10 16;
+      default = 13;
+      description = "Every text on the bar, in points; the icons follow. `minbar font-size` overrides it.";
     };
     showStats = mkOption {
       type = types.bool;

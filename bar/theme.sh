@@ -9,7 +9,8 @@ BAR_COLOR=0x00000000      # transparent bar so the boxes detach
 BOX_BG=0xbf1c1c1e         # graphite box fill (~75% opaque — frosted glass)
 BOX_BORDER=0xff48484a     # subtle gray border
 FG=0xfff5f5f7             # primary label (near-white)
-MUTED=0xff8e8e93          # secondary label (macOS system gray)
+MUTED=0xff8e8e93          # secondary label (macOS system gray): off, inactive
+PREFIX=0xffaeaeb2         # the stats' "CPU:" prefixes (macOS system gray 2): small Regular text needs more contrast
 DIM=0xff5a5a5e            # separators / tertiary
 ACTIVE_BG=0xfff5f5f7      # active workspace fill (near-white pill)
 ACTIVE_FG=0xff1c1c1e      # dark glyph on the active pill
@@ -19,33 +20,37 @@ STAT_RAM=0xffbf5af2       # purple (macOS system purple)
 STAT_DISK=$FG             # white
 STAT_NET=$MUTED           # gray
 
-##### Type scale — weight carries meaning #####
-# Text is SF Pro 13: Regular for values (stats, menu titles), Bold for headings
-# (the "CPU:" prefixes, the app name in the menu row), Semibold for the
-# workspace digits in their pills. On the mini bar (MINBAR_VARIANT) the icon +
-# value boxes (clock, battery, bell) go one step down to FONT_VALUE, 12: at
-# the same 13 as the workspace digits, a run of Regular text like
-# "Sun 25 Oct 19:51" reads bigger than the spaced-out Semibold pills. The rc
-# sets FONT_VALUE back to FONT_TEXT on classic. The classic system monitor and
-# the volume, on both, are one step down on their own: FONT_STAT, 12.
-# Glyphs are Hack Nerd Font 14. Most (clock, battery, the control box) fill
-# their em box and draw 24px tall on Retina; the volume speaker draws only 18px
-# at 14, so it alone gets FONT_ICON_VOLUME (16): 18 matched them on paper but
-# the solid speaker read bigger than the thin glyphs.
-FONT_TEXT="SF Pro:Regular:13.0"
-FONT_VALUE="SF Pro:Regular:12.0"
-FONT_TEXT_BOLD="SF Pro:Bold:13.0"
-FONT_STAT="SF Pro:Regular:12.0"
-FONT_STAT_BOLD="SF Pro:Bold:12.0"
-FONT_TEXT_SEMI="SF Pro:Semibold:13.0"
-FONT_ICON="Hack Nerd Font:Regular:14.0"
-FONT_ICON_VOLUME="Hack Nerd Font:Regular:16.0"
+##### Type: one face, one weight, one size #####
+# Every text on the bar is FONT_TEXT, SF Pro Regular at MINBAR_FONT_SIZE
+# (config.sh; `minbar font-size`): menu titles, workspace digits, stats and their
+# prefixes, volume, bell, clock, popups. No bold headings and no smaller values:
+# at 1x a bold grey prefix smears, and a 12 sits half a pixel lower than a 13.
+# Colour alone tells a prefix (MUTED) from its value (FG).
+# FONT_FEATURES gives figures one width, so a value never shifts as it changes.
+#
+# Glyphs are Hack Nerd Font, a point bigger than the text. Most (clock, battery,
+# the control box) fill their em box; the speaker does not and is four points
+# bigger: 11-12px of ink at 13, as tall as the others.
+#
+# SketchyBar puts a baseline on a whole point, so what is centred at one size is
+# up to 0.7px off at another. ICON_Y lifts the glyphs where the error is over half
+# a pixel. Measured on screen, ink against the box's centre, at every size: the
+# text is within 0.7, the glyphs within 0.5.
+FONT_FEATURES=tnum
+BADGE_FONT="SF Pro:Regular:10.0"   # the counts on clawd's sprites, the one smaller text
+# set_fonts SIZE: the rc and plugins/lib.sh call it, after config.sh.
+set_fonts() {
+  FONT_TEXT="SF Pro:Regular:$1.0"
+  FONT_ICON="Hack Nerd Font:Regular:$(($1 + 1)).0"
+  FONT_ICON_VOLUME="Hack Nerd Font:Regular:$(($1 + 4)).0"
+  # A brand glyph fills its whole em box: at the icons' size it reads bigger.
+  FONT_BRAND="Simple Icons:Regular:$(($1 - 1)).0"
+  case $1 in 11 | 14) ICON_Y=1 ;; *) ICON_Y=0 ;; esac
+}
 # Brand logos Nerd Fonts lacks, from Simple Icons (fonts/, `make fonts`). Set
 # icon.font="$FONT_BRAND" icon="$(si_glyph <slug>)" on the item; the slug is the
 # one in the simpleicons.org URL. Codepoints move between releases, hence the
-# lookup instead of a literal glyph. 12, not 14: these glyphs fill the whole
-# em box, so at 14 they read bigger than the Nerd Font icons next to them.
-FONT_BRAND="Simple Icons:Regular:12.0"
+# lookup instead of a literal glyph.
 si_glyph() { awk -F'\t' -v s="$1" '$1 == s { print $2; exit }' "${MINBAR_ROOT:-$CONFIG_DIR/..}/fonts/simple-icons.tsv" 2>/dev/null; }
 
 ##### Layout #####
